@@ -98,6 +98,9 @@ jobs:
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk "dist/depenses-expo-${VERSION}.apk"
           (cd dist && sha256sum *.apk > SHA256SUMS.txt)
+          # Lu par l'app (releases/latest/download/version.json) pour savoir
+          # si une version plus récente existe.
+          echo "{\"version\": \"${VERSION}\"}" > dist/version.json
           echo "version=${VERSION}+${BUILD}" >> "$GITHUB_OUTPUT"
           ls -lh dist/
 

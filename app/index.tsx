@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 
+import { UpdateBanner, UpdateFooter } from "@/components/Updates";
 import { type Palette, useColors } from "@/constants/theme";
 import { getLatestExpense, getMonthSummary, type MonthSummary } from "@/db/expenses";
 import type { Expense } from "@/types/expense";
@@ -45,6 +46,7 @@ export default function HomeScreen() {
       <Text style={styles.kicker}>VOTRE BUDGET</Text>
       <Text style={styles.title}>Suivi de dépenses</Text>
       {error && <Text style={styles.error}>Impossible de charger les dépenses.</Text>}
+      <UpdateBanner />
 
       <Pressable
         style={styles.card}
@@ -89,6 +91,8 @@ export default function HomeScreen() {
       ) : (
         <Text style={styles.muted}>Aucune dépense pour le moment.</Text>
       )}
+
+      <UpdateFooter />
     </ScrollView>
   );
 }

@@ -3,8 +3,8 @@
  * avec ‹ ›) et historique des totaux mensuels. Toucher un mois de
  * l'historique l'affiche en haut.
  */
-import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 
 import { type Palette, useColors } from "@/constants/theme";
@@ -21,6 +21,7 @@ export default function StatsScreen() {
   const [categories, setCategories] = useState<CategoryTotal[]>([]);
   const [history, setHistory] = useState<MonthTotal[]>([]);
   const [error, setError] = useState(false);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -47,8 +48,11 @@ export default function StatsScreen() {
   const isCurrentMonth = month >= currentMonth;
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+    <ScrollView ref={scrollRef} style={styles.page} contentContainerStyle={styles.content}>
       {error && <Text style={styles.error}>Impossible de charger les statistiques.</Text>}
+      <Text style={styles.muted}>
+        Combien tu as dépensé chaque mois, et pour quoi. Change de mois avec les flèches ‹ ›.
+      </Text>
 
       <View style={styles.monthNav}>
         <Pressable
@@ -75,11 +79,13 @@ export default function StatsScreen() {
       </View>
 
       <View style={styles.card}>
+        <Text style={styles.cardLight}>Total dépensé en {formatMonthLabel(month)}</Text>
         <Text style={styles.cardTotal}>{formatAmount(total)}</Text>
         <Text style={styles.cardLight}>{formatCount(count)}</Text>
       </View>
 
       <Text style={styles.section}>Par catégorie</Text>
+      <Text style={styles.hint}>Part de chaque catégorie dans le total du mois, de la plus grosse à la plus petite.</Text>
       {categories.length === 0 ? (
         <Text style={styles.muted}>Aucune dépense ce mois-ci.</Text>
       ) : (
@@ -109,6 +115,9 @@ export default function StatsScreen() {
       )}
 
       <Text style={styles.section}>Historique mensuel</Text>
+      <Text style={styles.hint}>
+        Total de chacun des 12 derniers mois avec des dépenses. Touche un mois pour afficher son détail en haut.
+      </Text>
       {history.length === 0 ? (
         <Text style={styles.muted}>Pas encore d’historique.</Text>
       ) : (
@@ -118,7 +127,10 @@ export default function StatsScreen() {
             return (
               <Pressable
                 key={row.month}
-                onPress={() => setMonth(row.month)}
+                onPress={() => {
+                  setMonth(row.month);
+                  scrollRef.current?.scrollTo({ y: 0, animated: true });
+                }}
                 style={[styles.historyRow, selected && styles.historySelected]}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
@@ -167,6 +179,7 @@ const createStyles = (c: Palette) =>
     cardTotal: { color: c.heroText, fontSize: 30, fontWeight: "800" },
     cardLight: { color: c.heroTextMuted, fontSize: 14 },
     section: { marginTop: 8, fontSize: 18, fontWeight: "700", color: c.text },
+    hint: { marginTop: -8, color: c.textMuted, fontSize: 13 },
     muted: { color: c.textMuted, fontSize: 14 },
     panel: { backgroundColor: c.surface, borderRadius: 14, padding: 14, gap: 14 },
     barRow: { gap: 6 },
