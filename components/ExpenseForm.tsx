@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -13,21 +13,23 @@ import DateTimePicker, { type DateTimePickerEvent } from "@react-native-communit
 
 import CategoryPicker from "@/components/CategoryPicker";
 import type { Category } from "@/constants/categories";
+import { type Palette, useColors } from "@/constants/theme";
 import type { Expense, ExpenseInput } from "@/types/expense";
-import { isValidISODate, todayISO, toISODate } from "@/utils/dateHelpers";
+import { formatDisplayDate, isValidISODate, todayISO, toISODate } from "@/utils/dateHelpers";
+import { UserFacingError } from "@/utils/errors";
 import { validateExpenseInput } from "@/utils/expenseValidation";
 
 interface ExpenseFormProps {
   initialExpense?: Expense;
   submitLabel: string;
+  /** Peut lever une UserFacingError dont le message sera affiché. */
   onSubmit: (value: ExpenseInput) => Promise<void>;
 }
 
-export default function ExpenseForm({
-  initialExpense,
-  submitLabel,
-  onSubmit,
-}: ExpenseFormProps) {
+export default function ExpenseForm({ initialExpense, submitLabel, onSubmit }: ExpenseFormProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [amount, setAmount] = useState(initialExpense ? String(initialExpense.montant) : "");
   const [category, setCategory] = useState<Category | null>(initialExpense?.categorie ?? null);
   const [date, setDate] = useState(initialExpense?.date ?? todayISO());
@@ -47,8 +49,8 @@ export default function ExpenseForm({
     setSaving(true);
     try {
       await onSubmit({ ...validation.value, note: note.trim() || null });
-    } catch {
-      setError("Enregistrement impossible. Vérifie la connexion et réessaie.");
+    } catch (e) {
+      setError(e instanceof UserFacingError ? e.message : "Enregistrement impossible. Réessaie.");
     } finally {
       setSaving(false);
     }
@@ -78,7 +80,8 @@ export default function ExpenseForm({
           value={amount}
           onChangeText={setAmount}
           placeholder="Ex. 1 500"
-          keyboardType="decimal-pad"
+          placeholderTextColor={colors.textMuted}
+          keyboardType="number-pad"
           accessibilityLabel="Montant en francs CFA"
         />
 
@@ -92,6 +95,7 @@ export default function ExpenseForm({
             value={date}
             onChangeText={setDate}
             placeholder="AAAA-MM-JJ"
+            placeholderTextColor={colors.textMuted}
             accessibilityLabel="Date de la dépense, année-mois-jour"
           />
         ) : (
@@ -100,9 +104,9 @@ export default function ExpenseForm({
               style={styles.dateButton}
               onPress={() => setDatePickerVisible((visible) => !visible)}
               accessibilityRole="button"
-              accessibilityLabel={`Date de la dépense : ${date}`}
+              accessibilityLabel={`Date de la dépense : ${formatDisplayDate(date)}. Changer`}
             >
-              <Text style={styles.dateText}>{date}</Text>
+              <Text style={styles.dateText}>{formatDisplayDate(date)}</Text>
               <Text style={styles.dateAction}>Changer</Text>
             </Pressable>
             {datePickerVisible && (
@@ -123,18 +127,24 @@ export default function ExpenseForm({
           value={note}
           onChangeText={setNote}
           placeholder="Ex. déjeuner"
+          placeholderTextColor={colors.textMuted}
           multiline
           maxLength={280}
           accessibilityLabel="Note facultative"
         />
 
-        {error !== null && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
+        {error !== null && (
+          <Text style={styles.error} accessibilityRole="alert">
+            {error}
+          </Text>
+        )}
 
         <Pressable
           style={[styles.submit, saving && styles.disabled]}
           onPress={handleSubmit}
           disabled={saving}
           accessibilityRole="button"
+          accessibilityState={{ disabled: saving, busy: saving }}
         >
           <Text style={styles.submitText}>{saving ? "Enregistrement…" : submitLabel}</Text>
         </Pressable>
@@ -143,43 +153,44 @@ export default function ExpenseForm({
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  content: { padding: 20, gap: 10 },
-  label: { color: "#344054", fontSize: 14, fontWeight: "600", marginTop: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#D0D5DD",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 16,
-    backgroundColor: "#FFFFFF",
-    color: "#101828",
-  },
-  dateButton: {
-    minHeight: 50,
-    borderWidth: 1,
-    borderColor: "#D0D5DD",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#FFFFFF",
-  },
-  dateText: { color: "#101828", fontSize: 16 },
-  dateAction: { color: "#175CD3", fontWeight: "600" },
-  noteInput: { minHeight: 84, textAlignVertical: "top" },
-  error: { color: "#B42318", fontSize: 14, marginTop: 4 },
-  submit: {
-    marginTop: 14,
-    minHeight: 52,
-    borderRadius: 14,
-    backgroundColor: "#175CD3",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  disabled: { opacity: 0.6 },
-  submitText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
-});
+const createStyles = (c: Palette) =>
+  StyleSheet.create({
+    flex: { flex: 1, backgroundColor: c.background },
+    content: { padding: 20, gap: 10 },
+    label: { color: c.textMuted, fontSize: 14, fontWeight: "600", marginTop: 8 },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+      fontSize: 16,
+      backgroundColor: c.surface,
+      color: c.text,
+    },
+    dateButton: {
+      minHeight: 50,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: c.surface,
+    },
+    dateText: { color: c.text, fontSize: 16 },
+    dateAction: { color: c.link, fontWeight: "600" },
+    noteInput: { minHeight: 84, textAlignVertical: "top" },
+    error: { color: c.danger, fontSize: 14, marginTop: 4 },
+    submit: {
+      marginTop: 14,
+      minHeight: 52,
+      borderRadius: 14,
+      backgroundColor: c.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    disabled: { opacity: 0.6 },
+    submitText: { color: c.onPrimary, fontSize: 16, fontWeight: "700" },
+  });

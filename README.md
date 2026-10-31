@@ -1,56 +1,63 @@
-# Welcome to your Expo app 👋
+# Dépenses — version Expo (React Native)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Application mobile de suivi de dépenses personnelles en FCFA, 100 % hors
+ligne (SQLite local). Version **React Native / Expo** du comparatif
+Expo vs Flutter ; la version Flutter vit dans le dépôt `expense-tracker-flutter`
+avec exactement les mêmes fonctionnalités.
 
-## Get started
+## Fonctionnalités
 
-1. Install dependencies
+- **Accueil** : total et nombre d'opérations du mois en cours, dernière dépense.
+- **Ajout / modification** : montant entier en FCFA (« 1 500 » accepté),
+  9 catégories fixes, date (sélecteur natif), note facultative (280 car.).
+- **Liste** : recherche sans accents ni casse sur la catégorie, la note, la
+  date (ISO ou JJ/MM/AAAA) et le montant ; filtre par catégorie ; suppression
+  avec confirmation.
+- **Statistiques** : répartition par catégorie d'un mois (navigation ‹ ›) et
+  historique des 12 derniers mois.
+- **Thème clair / sombre** qui suit le réglage du système.
 
-   ```bash
-   npm install
-   ```
+## Stack
 
-2. Start the app
+Expo SDK 58 · React Native 0.88 · expo-router · expo-sqlite · TypeScript strict · Jest
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+app/          écrans (routing par fichiers : index, add, list, stats, edit/[id])
+components/   ExpenseForm, CategoryPicker, Chip
+constants/    catégories, palettes clair/sombre
+db/           connexion, migrations (PRAGMA user_version), requêtes
+utils/        validation, formatage, dates, mois, recherche
+__tests__/    tests unitaires + test des migrations sur SQLite réel (node:sqlite)
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Développement
 
-### Other setup steps
+```bash
+npm install
+npm start          # serveur de dev (Expo Go doit être en SDK 58)
+npm run lint
+npm run typecheck
+npm test
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Base de données
 
-## Learn more
+Le schéma est versionné par `PRAGMA user_version`. Pour le faire évoluer,
+**ajouter** une migration à la fin de `MIGRATIONS` dans `db/schema.ts` —
+ne jamais modifier une migration déjà publiée. Ajouter ou renommer une
+catégorie demande aussi une migration (contrainte CHECK).
 
-To learn more about developing your project with Expo, look at the following resources:
+## Tester sur le téléphone (APK)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Comme pour Loady, l'APK est construit par GitHub Actions et signé avec la
+clé debug partagée (secret `DEBUG_KEYSTORE_BASE64`), ce qui permet
+d'installer chaque nouvelle version par-dessus la précédente.
 
-## Join the community
+1. Mettre à jour `expo.version` **et** incrémenter `expo.android.versionCode`
+   dans `app.json`.
+2. Commiter, puis pousser un tag correspondant : `git tag v1.0.1 && git push origin v1.0.1`.
+3. Le workflow **Build Android APK** publie `depenses-expo-<version>.apk`
+   dans les Releases du dépôt (connexion GitHub requise : dépôt privé).
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Le workflow peut aussi être lancé à la main (onglet Actions → *Run workflow*) :
+l'APK est alors disponible en artefact.

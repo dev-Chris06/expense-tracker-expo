@@ -1,0 +1,122 @@
+name: Build Android APK
+
+# Même principe que Loady : l'APK est signé avec la clé debug partagée
+# (secret DEBUG_KEYSTORE_BASE64), pour que chaque nouvelle version
+# s'installe par-dessus la précédente sur le téléphone sans désinstaller.
+# Un tag v* publie l'APK dans les GitHub Releases.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      # Un tag doit correspondre à la version de app.json, sinon l'APK
+      # publié annoncerait un mauvais numéro.
+      - name: Check tag matches app.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=$(jq -r '.expo.version' app.json)
+          if [ "${GITHUB_REF_NAME}" != "v${VERSION}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match app.json version ${VERSION} (expected v${VERSION})."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests before building
+        run: npm test -- --ci
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --no-install
+
+      # Le projet généré par Expo signe le build release avec
+      # android/app/debug.keystore : on y place la clé partagée.
+      - name: Restore debug keystore (same cert as user's phone)
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$DEBUG_KEYSTORE_BASE64" ]; then
+            echo "::error::DEBUG_KEYSTORE_BASE64 secret is missing — APK would be signed with a random cert that cannot upgrade installed versions."
+            exit 1
+          fi
+          if ! grep -q "signingConfig signingConfigs.debug" android/app/build.gradle; then
+            echo "::error::android/app/build.gradle no longer signs release with signingConfigs.debug — update this workflow."
+            exit 1
+          fi
+          printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 -d -i > android/app/debug.keystore
+          SIZE=$(stat -c%s android/app/debug.keystore)
+          if [ "$SIZE" -lt 1000 ]; then
+            echo "::error::Decoded keystore is suspiciously small (${SIZE} bytes)."
+            exit 1
+          fi
+          keytool -list -keystore android/app/debug.keystore \
+                  -storepass android -alias androiddebugkey 2>&1 \
+            | grep -E "SHA256|SHA-256" || true
+
+      # arm64 pour les téléphones récents, armeabi-v7a pour les 32 bits.
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+
+      - name: Rename artifact with version
+        id: rename
+        run: |
+          VERSION=$(jq -r '.expo.version' app.json)
+          BUILD=$(jq -r '.expo.android.versionCode' app.json)
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release.apk "dist/depenses-expo-${VERSION}.apk"
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt)
+          echo "version=${VERSION}+${BUILD}" >> "$GITHUB_OUTPUT"
+          ls -lh dist/
+
+      - name: Verify APK signature matches the restored keystore
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs dist/*.apk | grep -E "certificate SHA-256|certificate DN"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: depenses-expo-apk-${{ steps.rename.outputs.version }}
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Publish release (only on tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          prerelease: false
+          make_latest: true
+          generate_release_notes: true
