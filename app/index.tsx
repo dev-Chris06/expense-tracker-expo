@@ -1,0 +1,15 @@
+import { useCallback, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { getAllExpenses } from "@/db/expenses";
+import type { Expense } from "@/types/expense";
+import { formatDisplayDate } from "@/utils/dateHelpers";
+import { formatAmount } from "@/utils/formatters";
+
+export default function HomeScreen() {
+ const router=useRouter(); const [expenses,setExpenses]=useState<Expense[]>([]); const [error,setError]=useState(false);
+ useFocusEffect(useCallback(()=>{let active=true;getAllExpenses().then(rows=>{if(active){setExpenses(rows);setError(false);}}).catch(()=>{if(active)setError(true);});return()=>{active=false;};},[]));
+ const now=new Date(); const month=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`; const monthly=expenses.filter(x=>x.date.startsWith(month)); const total=monthly.reduce((sum,x)=>sum+x.montant,0); const recent=expenses[0];
+ return <View style={s.page}><Text style={s.kicker}>VOTRE BUDGET</Text><Text style={s.title}>Suivi de dépenses</Text>{error&&<Text style={s.error}>Impossible de charger les dépenses.</Text>}<View style={s.card}><Text style={s.label}>Dépenses ce mois-ci</Text><Text style={s.total}>{formatAmount(total)}</Text><Text style={s.light}>{monthly.length} opération{monthly.length===1?"":"s"}</Text></View><Pressable style={s.primary} onPress={()=>router.push("/add")}><Text style={s.primaryText}>＋ Ajouter une dépense</Text></Pressable><Pressable style={s.secondary} onPress={()=>router.push("/list")}><Text style={s.secondaryText}>Voir toutes mes dépenses →</Text></Pressable><Text style={s.section}>Dernière dépense</Text>{recent?<Pressable style={s.recent} onPress={()=>router.push(`/edit/${recent.id}`)}><View><Text style={s.recentTitle}>{recent.categorie}</Text><Text style={s.muted}>{formatDisplayDate(recent.date)}{recent.note?` · ${recent.note}`:""}</Text></View><Text style={s.amount}>{formatAmount(recent.montant)}</Text></Pressable>:<Text style={s.muted}>Aucune dépense pour le moment.</Text>}</View>;
+}
+const s=StyleSheet.create({page:{flex:1,padding:22,gap:16,backgroundColor:"#F8FAFC"},kicker:{marginTop:12,color:"#667085",fontSize:12,fontWeight:"700",letterSpacing:1.4},title:{color:"#101828",fontSize:28,fontWeight:"800"},card:{marginTop:10,backgroundColor:"#102A43",borderRadius:20,padding:22,gap:8},label:{color:"#D9EAF7",fontSize:15},total:{color:"white",fontSize:34,fontWeight:"800"},light:{color:"#D9EAF7",fontSize:14},muted:{color:"#667085",fontSize:14},primary:{backgroundColor:"#1570EF",padding:17,borderRadius:14,alignItems:"center"},primaryText:{color:"white",fontWeight:"700",fontSize:16},secondary:{padding:14,alignItems:"center"},secondaryText:{color:"#175CD3",fontWeight:"700"},section:{marginTop:12,fontSize:18,fontWeight:"700",color:"#101828"},recent:{padding:16,backgroundColor:"white",borderRadius:14,flexDirection:"row",justifyContent:"space-between",alignItems:"center",gap:10},recentTitle:{fontWeight:"700",fontSize:16,marginBottom:5,color:"#101828"},amount:{fontWeight:"700",color:"#101828"},error:{color:"#B42318"}});
