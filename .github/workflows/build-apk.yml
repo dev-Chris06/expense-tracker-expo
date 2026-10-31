@@ -20,7 +20,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -80,9 +80,10 @@ jobs:
             echo "::error::Decoded keystore is suspiciously small (${SIZE} bytes)."
             exit 1
           fi
-          keytool -list -keystore android/app/debug.keystore \
-                  -storepass android -alias androiddebugkey 2>&1 \
-            | grep -E "SHA256|SHA-256" || true
+          FINGERPRINT=$(keytool -list -keystore android/app/debug.keystore -storepass android -alias androiddebugkey \
+            | grep -E "SHA-?256" | sed 's/.*: //' | tr -d ':' | tr 'A-F' 'a-f')
+          echo "Keystore SHA-256: ${FINGERPRINT}"
+          echo "KEYSTORE_SHA256=${FINGERPRINT}" >> "$GITHUB_ENV"
 
       # arm64 pour les téléphones récents, armeabi-v7a pour les 32 bits.
       - name: Build release APK
@@ -103,7 +104,14 @@ jobs:
       - name: Verify APK signature matches the restored keystore
         run: |
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
-          "$APKSIGNER" verify --print-certs dist/*.apk | grep -E "certificate SHA-256|certificate DN"
+          # Échoue si l'APK n'est pas signé avec la clé partagée : il ne
+          # pourrait pas mettre à jour la version installée sur le téléphone.
+          DIGEST=$("$APKSIGNER" verify --print-certs dist/*.apk | grep -m1 "certificate SHA-256 digest" | sed 's/.*: //')
+          echo "APK SHA-256: ${DIGEST}"
+          if [ "$DIGEST" != "$KEYSTORE_SHA256" ]; then
+            echo "::error::APK is signed with ${DIGEST}, expected ${KEYSTORE_SHA256}."
+            exit 1
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
