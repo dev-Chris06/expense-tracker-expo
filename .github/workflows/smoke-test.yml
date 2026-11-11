@@ -95,6 +95,8 @@ jobs:
           arch: ${{ matrix.arch }}
           target: ${{ matrix.target || 'google_apis' }}
           disable-animations: true
+          # 2 Go par défaut : l'image 16 Ko tuait les apps faute de mémoire.
+          ram-size: 4096M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           script: bash .github/scripts/smoke-test.sh apk/app-release.apk com.devchris06.expensetracker.expo smoke
 
