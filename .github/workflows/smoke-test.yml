@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   smoke:
+    name: build
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -39,11 +40,44 @@ jobs:
       - name: Generate native Android project
         run: npx expo prebuild --platform android --no-install
 
-      # Même build release que pour le téléphone, mais pour le processeur
-      # de l'émulateur.
-      - name: Build release APK (x86_64)
+      # Même build release que pour le téléphone, mais pour les processeurs
+      # des émulateurs (x86 = 32 bits, x86_64 = 64 bits).
+      - name: Build release APK (x86 + x86_64)
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86_64
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86,x86_64
+
+      - name: Upload emulator APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+
+  # Plusieurs versions d'Android, en 32 et 64 bits.
+  emulator:
+    needs: smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { api: 24, arch: x86 }
+          - { api: 26, arch: x86 }
+          - { api: 28, arch: x86 }
+          - { api: 30, arch: x86 }
+          - { api: 29, arch: x86_64 }
+          - { api: 31, arch: x86_64 }
+          - { api: 34, arch: x86_64 }
+          - { api: 35, arch: x86_64 }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download emulator APK
+        uses: actions/download-artifact@v4
+        with:
+          name: emulator-apk
+          path: apk
 
       - name: Enable KVM
         run: |
@@ -54,16 +88,16 @@ jobs:
       - name: Launch the app on an emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
-          arch: x86_64
+          api-level: ${{ matrix.api }}
+          arch: ${{ matrix.arch }}
           target: google_apis
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
-          script: bash .github/scripts/smoke-test.sh android/app/build/outputs/apk/release/app-release.apk com.devchris06.expensetracker.expo smoke
+          script: bash .github/scripts/smoke-test.sh apk/app-release.apk com.devchris06.expensetracker.expo smoke
 
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: smoke-test-logs
+          name: smoke-api${{ matrix.api }}-${{ matrix.arch }}
           path: smoke/

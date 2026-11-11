@@ -21,7 +21,9 @@ adb logcat -d -b crash > "$OUT/crash.txt" || true
 echo "----- Erreurs relevées -----"
 grep -nE "FATAL|AndroidRuntime|ReactNativeJS|ReactNative|libc   |DEBUG  |SoLoader|Hermes|Exception" "$OUT/logcat.txt" | head -150
 
-if adb shell pidof "$PKG" >/dev/null; then
+# pidof n'existe pas sur tous les anciens Android : on lit la liste des
+# processus (ps -A depuis Android 8, ps seul avant).
+if adb shell "ps -A 2>/dev/null; ps" | grep -q "$PKG"; then
   echo "L'app tourne toujours après 25 s."
 else
   echo "::error::L'app s'est fermée (voir crash.txt / logcat.txt dans l'artefact)."
