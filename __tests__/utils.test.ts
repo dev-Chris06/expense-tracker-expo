@@ -1,16 +1,31 @@
-import type { Expense } from "../types/expense";
+import type { Transaction } from "../types/transaction";
 import { formatDisplayDate, isValidISODate, toISODate } from "../utils/dateHelpers";
-import { formatAmount, formatCount } from "../utils/formatters";
+import { formatAmount, formatCount, formatSignedAmount } from "../utils/formatters";
 import { formatMonthLabel, monthKey, percentOf, shiftMonth } from "../utils/months";
 import { matchesQuery, normalizeForSearch } from "../utils/search";
 
-const expense: Expense = { id: 1, montant: 1500, categorie: "Études", date: "2026-08-02", note: "Cahiers Déjà" };
+const expense: Transaction = {
+  id: 1,
+  montant: 1500,
+  categorieId: 5,
+  categorie: "Études",
+  type: "depense",
+  couleur: "#F59F00",
+  icone: "📚",
+  date: "2026-08-02",
+  note: "Cahiers Déjà",
+};
 
 describe("formatters", () => {
   it("formats amounts with non-breaking thousands separators", () => {
     expect(formatAmount(0)).toBe("0 FCFA");
     expect(formatAmount(1500)).toBe("1 500 FCFA");
     expect(formatAmount(1234567)).toBe("1 234 567 FCFA");
+  });
+
+  it("prefixes the direction of an operation", () => {
+    expect(formatSignedAmount(1500, "depense")).toBe("−\u00a01\u00a0500\u00a0FCFA");
+    expect(formatSignedAmount(20000, "revenu")).toBe("+\u00a020\u00a0000\u00a0FCFA");
   });
 
   it("pluralizes operation counts", () => {

@@ -69,6 +69,9 @@ jobs:
           - { api: 31, arch: x86_64 }
           - { api: 34, arch: x86_64 }
           - { api: 35, arch: x86_64 }
+          - { api: 36, arch: x86_64 }
+          # Pages mémoire de 16 Ko, comme sur certains téléphones récents.
+          - { api: 35, arch: x86_64, target: google_apis_ps16k }
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -90,7 +93,7 @@ jobs:
         with:
           api-level: ${{ matrix.api }}
           arch: ${{ matrix.arch }}
-          target: google_apis
+          target: ${{ matrix.target || 'google_apis' }}
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           script: bash .github/scripts/smoke-test.sh apk/app-release.apk com.devchris06.expensetracker.expo smoke
@@ -99,5 +102,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: smoke-api${{ matrix.api }}-${{ matrix.arch }}
+          name: smoke-api${{ matrix.api }}-${{ matrix.arch }}-${{ matrix.target || 'google_apis' }}
           path: smoke/

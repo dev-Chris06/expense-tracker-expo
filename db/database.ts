@@ -41,6 +41,8 @@ export function getDatabase(): SQLite.SQLiteDatabase {
   if (db === null) {
     const database = SQLite.openDatabaseSync(DATABASE_NAME);
     database.execSync("PRAGMA journal_mode = WAL;");
+    // Refuse une opération qui pointerait vers une catégorie inexistante.
+    database.execSync("PRAGMA foreign_keys = ON;");
     migrate(database);
     db = database;
   }

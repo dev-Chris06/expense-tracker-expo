@@ -43,16 +43,28 @@ function adapter(db: DatabaseSync) {
 const userVersion = (db: DatabaseSync) =>
   (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
 
+interface CategoryRow {
+  id: number;
+  nom: string;
+  type: string;
+}
+
 describe("database migrations", () => {
   it("creates the latest schema on a fresh database", () => {
     const db = new DatabaseSync(":memory:");
     migrate(adapter(db));
 
     expect(userVersion(db)).toBe(DATABASE_VERSION);
-    const columns = db.prepare("PRAGMA table_info(expenses)").all() as { name: string; type: string }[];
+    const columns = db.prepare("PRAGMA table_info(transactions)").all() as { name: string; type: string }[];
     expect(columns.find((c) => c.name === "montant")?.type).toBe("INTEGER");
-    const indexes = db.prepare("PRAGMA index_list(expenses)").all() as { name: string }[];
-    expect(indexes.map((i) => i.name)).toContain("idx_expenses_date");
+    const indexes = db.prepare("PRAGMA index_list(transactions)").all() as { name: string }[];
+    expect(indexes.map((i) => i.name)).toEqual(
+      expect.arrayContaining(["idx_transactions_date", "idx_transactions_categorie"]),
+    );
+    const categories = db.prepare("SELECT id, nom, type FROM categories ORDER BY id").all() as CategoryRow[];
+    expect(categories.filter((c) => c.type === "depense")).toHaveLength(9);
+    expect(categories.filter((c) => c.type === "revenu")).toHaveLength(4);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM settings").get()).toEqual({ n: 0 });
   });
 
   it("converts a legacy v1 database (REAL amounts, user_version 0)", () => {
@@ -61,16 +73,43 @@ describe("database migrations", () => {
     db.exec(`INSERT INTO expenses (montant, categorie, date, note) VALUES
       (1500, 'Transport', '2026-10-01', 'taxi'),
       (99.6, 'Nourriture', '2026-10-02', NULL),
-      (0.2, 'Autre', '2026-10-03', NULL)`);
+      (0.2, 'Études', '2026-10-03', NULL)`);
 
     migrate(adapter(db));
 
     expect(userVersion(db)).toBe(DATABASE_VERSION);
-    expect(db.prepare("SELECT id, montant, note FROM expenses ORDER BY id").all()).toEqual([
-      { id: 1, montant: 1500, note: "taxi" },
-      { id: 2, montant: 100, note: null },
-      { id: 3, montant: 1, note: null },
+    expect(
+      db
+        .prepare(
+          `SELECT t.id, t.montant, c.nom AS categorie, c.type, t.date, t.note
+           FROM transactions t JOIN categories c ON c.id = t.categorie_id ORDER BY t.id`,
+        )
+        .all(),
+    ).toEqual([
+      { id: 1, montant: 1500, categorie: "Transport", type: "depense", date: "2026-10-01", note: "taxi" },
+      { id: 2, montant: 100, categorie: "Nourriture", type: "depense", date: "2026-10-02", note: null },
+      { id: 3, montant: 1, categorie: "Études", type: "depense", date: "2026-10-03", note: null },
     ]);
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as { name: string }[];
+    expect(tables.map((t) => t.name)).not.toContain("expenses");
+  });
+
+  it("converts a v2 database without losing any row", () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec(MIGRATIONS[0]);
+    db.exec(MIGRATIONS[1]);
+    db.exec("PRAGMA user_version = 2");
+    const names = ["Nourriture", "Transport", "Communication", "Logement", "Études", "Travail", "Santé", "Loisirs", "Autre"];
+    names.forEach((nom, i) =>
+      db.exec(`INSERT INTO expenses (montant, categorie, date) VALUES (${(i + 1) * 100}, '${nom}', '2026-10-01')`),
+    );
+
+    migrate(adapter(db));
+
+    expect(db.prepare("SELECT COUNT(*) AS n, SUM(montant) AS total FROM transactions").get()).toEqual({
+      n: 9,
+      total: 4500,
+    });
   });
 
   it("is idempotent and keeps rejecting invalid rows", () => {
@@ -79,10 +118,17 @@ describe("database migrations", () => {
     migrate(adapter(db));
 
     expect(() =>
-      db.exec("INSERT INTO expenses (montant, categorie, date) VALUES (10, 'Inconnue', '2026-10-01')"),
+      db.exec("INSERT INTO transactions (montant, categorie_id, date) VALUES (0, 1, '2026-10-01')"),
+    ).toThrow();
+    // Noms uniques par type, sans tenir compte de la casse.
+    expect(() =>
+      db.exec("INSERT INTO categories (nom, type, couleur, icone) VALUES ('nourriture', 'depense', '#000000', '🍲')"),
     ).toThrow();
     expect(() =>
-      db.exec("INSERT INTO expenses (montant, categorie, date) VALUES (0, 'Autre', '2026-10-01')"),
+      db.exec("INSERT INTO categories (nom, type, couleur, icone) VALUES ('Prime', 'autre', '#000000', '🍲')"),
+    ).toThrow();
+    expect(() =>
+      db.exec("INSERT INTO categories (nom, type, couleur, icone, budget) VALUES ('Prime', 'revenu', '#000000', '🎁', 0)"),
     ).toThrow();
   });
 });

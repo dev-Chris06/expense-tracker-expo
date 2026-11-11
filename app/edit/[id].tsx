@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import ExpenseForm from "@/components/ExpenseForm";
+import TransactionForm from "@/components/TransactionForm";
 import { type Palette, useColors } from "@/constants/theme";
-import { getExpenseById, updateExpense } from "@/db/expenses";
-import type { Expense } from "@/types/expense";
+import { getTransactionById, updateTransaction } from "@/db/transactions";
+import type { Transaction } from "@/types/transaction";
 import { UserFacingError } from "@/utils/errors";
 
 export default function EditScreen() {
@@ -14,7 +14,7 @@ export default function EditScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [expense, setExpense] = useState<Expense | null>(null);
+  const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -24,14 +24,14 @@ export default function EditScreen() {
   useEffect(() => {
     if (invalidId) return;
     let active = true;
-    getExpenseById(numericId)
+    getTransactionById(numericId)
       .then((value) => {
         if (!active) return;
-        setExpense(value);
-        if (!value) setError("Cette dépense est introuvable.");
+        setTransaction(value);
+        if (!value) setError("Cette opération est introuvable.");
       })
       .catch(() => {
-        if (active) setError("Impossible de charger cette dépense.");
+        if (active) setError("Impossible de charger cette opération.");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -50,10 +50,10 @@ export default function EditScreen() {
     );
   }
 
-  if (invalidId || !expense) {
+  if (invalidId || !transaction) {
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>{invalidId ? "Cette dépense est introuvable." : error}</Text>
+        <Text style={styles.error}>{invalidId ? "Cette opération est introuvable." : error}</Text>
         <Pressable onPress={() => router.replace("/list")} accessibilityRole="button">
           <Text style={styles.link}>Retour à la liste</Text>
         </Pressable>
@@ -62,13 +62,13 @@ export default function EditScreen() {
   }
 
   return (
-    <ExpenseForm
-      initialExpense={expense}
+    <TransactionForm
+      initialTransaction={transaction}
       submitLabel="Enregistrer les modifications"
       onSubmit={async (value) => {
-        const updated = await updateExpense(expense.id, value);
+        const updated = await updateTransaction(transaction.id, value);
         if (!updated) {
-          throw new UserFacingError("Cette dépense n’existe plus : elle a peut-être été supprimée.");
+          throw new UserFacingError("Cette opération n’existe plus : elle a peut-être été supprimée.");
         }
         // Retour à l'écran d'origine (accueil ou liste), qui se recharge seul.
         if (router.canGoBack()) router.back();

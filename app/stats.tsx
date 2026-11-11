@@ -1,6 +1,6 @@
 /**
- * Statistiques : répartition par catégorie pour un mois donné (navigable
- * avec ‹ ›) et historique des totaux mensuels. Toucher un mois de
+ * Statistiques : dépenses, revenus et solde d'un mois (navigable avec ‹ ›),
+ * répartition des dépenses par catégorie et historique des totaux mensuels. Toucher un mois de
  * l'historique l'affiche en haut.
  */
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -8,8 +8,15 @@ import { Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View 
 import { useFocusEffect } from "expo-router";
 
 import { type Palette, useColors } from "@/constants/theme";
-import { type CategoryTotal, getCategoryTotals, getMonthlyTotals, type MonthTotal } from "@/db/expenses";
-import { formatAmount, formatCount } from "@/utils/formatters";
+import {
+  type CategoryTotal,
+  getCategoryTotals,
+  getMonthlyTotals,
+  getMonthSummary,
+  type MonthSummary,
+  type MonthTotal,
+} from "@/db/transactions";
+import { formatAmount, formatCount, formatSignedAmount } from "@/utils/formatters";
 import { formatMonthLabel, monthKey, percentOf, shiftMonth } from "@/utils/months";
 
 export default function StatsScreen() {
@@ -19,6 +26,7 @@ export default function StatsScreen() {
   const currentMonth = monthKey();
   const [month, setMonth] = useState(currentMonth);
   const [categories, setCategories] = useState<CategoryTotal[]>([]);
+  const [summary, setSummary] = useState<MonthSummary>({ depenses: 0, revenus: 0, solde: 0, count: 0 });
   const [history, setHistory] = useState<MonthTotal[]>([]);
   const [error, setError] = useState(false);
   const scrollRef = useRef<ScrollViewInstance>(null);
@@ -26,10 +34,11 @@ export default function StatsScreen() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      Promise.all([getCategoryTotals(month), getMonthlyTotals(12)])
-        .then(([categoryTotals, monthlyTotals]) => {
+      Promise.all([getCategoryTotals(month), getMonthlyTotals(12), getMonthSummary(month)])
+        .then(([categoryTotals, monthlyTotals, monthSummary]) => {
           if (!active) return;
           setCategories(categoryTotals);
+          setSummary(monthSummary);
           setHistory(monthlyTotals);
           setError(false);
         })
@@ -42,16 +51,15 @@ export default function StatsScreen() {
     }, [month]),
   );
 
-  const total = categories.reduce((sum, row) => sum + row.total, 0);
-  const count = categories.reduce((sum, row) => sum + row.count, 0);
-  const maxMonthly = Math.max(0, ...history.map((row) => row.total));
+  const total = summary.depenses;
+  const maxMonthly = Math.max(0, ...history.map((row) => Math.max(row.depenses, row.revenus)));
   const isCurrentMonth = month >= currentMonth;
 
   return (
     <ScrollView ref={scrollRef} style={styles.page} contentContainerStyle={styles.content}>
       {error && <Text style={styles.error}>Impossible de charger les statistiques.</Text>}
       <Text style={styles.muted}>
-        Combien tu as dépensé chaque mois, et pour quoi. Change de mois avec les flèches ‹ ›.
+        Combien tu as gagné et dépensé chaque mois, et pour quoi. Change de mois avec les flèches ‹ ›.
       </Text>
 
       <View style={styles.monthNav}>
@@ -81,11 +89,16 @@ export default function StatsScreen() {
       <View style={styles.card}>
         <Text style={styles.cardLight}>Total dépensé en {formatMonthLabel(month)}</Text>
         <Text style={styles.cardTotal}>{formatAmount(total)}</Text>
-        <Text style={styles.cardLight}>{formatCount(count)}</Text>
+        <Text style={styles.cardLight}>
+          Revenus {formatAmount(summary.revenus)} · Solde {formatAmount(summary.solde)}
+        </Text>
+        <Text style={styles.cardLight}>{formatCount(summary.count)}</Text>
       </View>
 
       <Text style={styles.section}>Par catégorie</Text>
-      <Text style={styles.hint}>Part de chaque catégorie dans le total du mois, de la plus grosse à la plus petite.</Text>
+      <Text style={styles.hint}>
+        Part de chaque catégorie dans les dépenses du mois, de la plus grosse à la plus petite.
+      </Text>
       {categories.length === 0 ? (
         <Text style={styles.muted}>Aucune dépense ce mois-ci.</Text>
       ) : (
@@ -94,19 +107,23 @@ export default function StatsScreen() {
             const percent = percentOf(row.total, total);
             return (
               <View
-                key={row.categorie}
+                key={row.categorieId}
                 style={styles.barRow}
                 accessible
                 accessibilityLabel={`${row.categorie} : ${formatAmount(row.total)}, ${percent} pour cent`}
               >
                 <View style={styles.barHeader}>
-                  <Text style={styles.barLabel}>{row.categorie}</Text>
+                  <Text style={styles.barLabel}>
+                    {row.icone} {row.categorie}
+                  </Text>
                   <Text style={styles.barValue}>
                     {formatAmount(row.total)} · {percent} %
                   </Text>
                 </View>
                 <View style={styles.barTrack}>
-                  <View style={[styles.barFill, { width: `${Math.max(percent, 2)}%` }]} />
+                  <View
+                    style={[styles.barFill, { width: `${Math.max(percent, 2)}%`, backgroundColor: row.couleur }]}
+                  />
                 </View>
               </View>
             );
@@ -116,7 +133,8 @@ export default function StatsScreen() {
 
       <Text style={styles.section}>Historique mensuel</Text>
       <Text style={styles.hint}>
-        Total de chacun des 12 derniers mois avec des dépenses. Touche un mois pour afficher son détail en haut.
+        Dépenses (−) et revenus (+) des 12 derniers mois avec des opérations. Touche un mois pour afficher son
+        détail en haut.
       </Text>
       {history.length === 0 ? (
         <Text style={styles.muted}>Pas encore d’historique.</Text>
@@ -134,19 +152,35 @@ export default function StatsScreen() {
                 style={[styles.historyRow, selected && styles.historySelected]}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
-                accessibilityLabel={`${formatMonthLabel(row.month)} : ${formatAmount(row.total)}, ${formatCount(row.count)}`}
+                accessibilityLabel={`${formatMonthLabel(row.month)} : dépenses ${formatAmount(row.depenses)}, revenus ${formatAmount(row.revenus)}`}
               >
                 <View style={styles.barHeader}>
                   <Text style={[styles.barLabel, selected && styles.historyLabelSelected]}>
                     {formatMonthLabel(row.month)}
                   </Text>
-                  <Text style={styles.barValue}>{formatAmount(row.total)}</Text>
+                  <Text style={styles.barValue}>{formatSignedAmount(row.depenses, "depense")}</Text>
                 </View>
                 <View style={styles.barTrack}>
                   <View
-                    style={[styles.barFill, { width: `${Math.max(percentOf(row.total, maxMonthly), 2)}%` }]}
+                    style={[styles.barFill, { width: `${Math.max(percentOf(row.depenses, maxMonthly), 2)}%` }]}
                   />
                 </View>
+                {row.revenus > 0 && (
+                  <>
+                    <Text style={[styles.barValue, styles.incomeValue]}>
+                      {formatSignedAmount(row.revenus, "revenu")}
+                    </Text>
+                    <View style={styles.barTrack}>
+                      <View
+                        style={[
+                          styles.barFill,
+                          styles.incomeFill,
+                          { width: `${Math.max(percentOf(row.revenus, maxMonthly), 2)}%` },
+                        ]}
+                      />
+                    </View>
+                  </>
+                )}
               </Pressable>
             );
           })}
@@ -191,4 +225,6 @@ const createStyles = (c: Palette) =>
     historyRow: { gap: 6, padding: 8, marginHorizontal: -8, borderRadius: 10 },
     historySelected: { backgroundColor: c.barTrack },
     historyLabelSelected: { color: c.link },
+    incomeValue: { alignSelf: "flex-end", color: c.success },
+    incomeFill: { backgroundColor: c.success },
   });

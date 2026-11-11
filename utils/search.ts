@@ -1,4 +1,4 @@
-import type { Expense } from "@/types/expense";
+import type { Transaction } from "@/types/transaction";
 import { formatDisplayDate } from "@/utils/dateHelpers";
 
 /**
@@ -14,21 +14,21 @@ export function normalizeForSearch(value: string): string {
 }
 
 /**
- * Indique si une dépense correspond à la recherche. On compare aussi bien
+ * Indique si une opération correspond à la recherche. On compare aussi bien
  * les valeurs brutes que les formats affichés à l'écran (date JJ/MM/AAAA).
  */
-export function matchesQuery(expense: Expense, query: string): boolean {
+export function matchesQuery(transaction: Transaction, query: string): boolean {
   const needle = normalizeForSearch(query);
   if (needle === "") {
     return true;
   }
 
   const fields = [
-    expense.categorie,
-    expense.note ?? "",
-    expense.date,
-    formatDisplayDate(expense.date),
-    String(expense.montant),
+    transaction.categorie,
+    transaction.note ?? "",
+    transaction.date,
+    formatDisplayDate(transaction.date),
+    String(transaction.montant),
   ];
   return fields.some((field) => normalizeForSearch(field).includes(needle));
 }

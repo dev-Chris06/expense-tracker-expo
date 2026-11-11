@@ -14,3 +14,8 @@ export function formatAmount(amount: number): string {
 export function formatCount(count: number): string {
   return `${count} opération${count > 1 ? "s" : ""}`;
 }
+
+/** Montant précédé de son sens : "- 1 500 FCFA" pour une dépense, "+ 1 500 FCFA" pour un revenu. */
+export function formatSignedAmount(amount: number, type: "depense" | "revenu"): string {
+  return `${type === "revenu" ? "+" : "−"}\u00a0${formatAmount(amount)}`;
+}

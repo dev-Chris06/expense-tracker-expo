@@ -9,24 +9,25 @@
 import { StyleSheet, View } from "react-native";
 
 import Chip from "@/components/Chip";
-import { CATEGORIES, type Category } from "@/constants/categories";
+import type { Category } from "@/types/transaction";
 
 interface CategoryPickerProps {
-  /** Catégorie actuellement sélectionnée (null = aucune) */
-  value: Category | null;
+  categories: Category[];
+  /** Id de la catégorie sélectionnée (null = aucune) */
+  value: number | null;
   /** Appelé quand l'utilisateur touche une catégorie */
-  onChange: (category: Category) => void;
+  onChange: (categoryId: number) => void;
 }
 
-export default function CategoryPicker({ value, onChange }: CategoryPickerProps) {
+export default function CategoryPicker({ categories, value, onChange }: CategoryPickerProps) {
   return (
     <View style={styles.container} accessibilityRole="radiogroup">
-      {CATEGORIES.map((category) => (
+      {categories.map((category) => (
         <Chip
-          key={category}
-          label={category}
-          selected={category === value}
-          onPress={() => onChange(category)}
+          key={category.id}
+          label={`${category.icone} ${category.nom}`}
+          selected={category.id === value}
+          onPress={() => onChange(category.id)}
         />
       ))}
     </View>

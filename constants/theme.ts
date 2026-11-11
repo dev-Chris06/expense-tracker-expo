@@ -2,7 +2,9 @@
  * Palettes claire et sombre. Les écrans lisent les couleurs via useColors()
  * au lieu de les coder en dur, ce qui permet de suivre le thème du système.
  */
-import { useColorScheme } from "react-native";
+import { Appearance, useColorScheme } from "react-native";
+
+import type { ThemePreference } from "@/db/settings";
 
 export interface Palette {
   background: string;
@@ -14,6 +16,10 @@ export interface Palette {
   onPrimary: string;
   link: string;
   danger: string;
+  /** Revenus, solde positif */
+  success: string;
+  /** Budget presque atteint (80 %) */
+  warning: string;
   heroBackground: string;
   heroText: string;
   heroTextMuted: string;
@@ -30,6 +36,8 @@ export const lightColors: Palette = {
   onPrimary: "#FFFFFF",
   link: "#175CD3",
   danger: "#B42318",
+  success: "#067647",
+  warning: "#B54708",
   heroBackground: "#102A43",
   heroText: "#FFFFFF",
   heroTextMuted: "#D9EAF7",
@@ -46,6 +54,8 @@ export const darkColors: Palette = {
   onPrimary: "#FFFFFF",
   link: "#84CAFF",
   danger: "#F97066",
+  success: "#47CD89",
+  warning: "#FDB022",
   heroBackground: "#1D3A5F",
   heroText: "#FFFFFF",
   heroTextMuted: "#D9EAF7",
@@ -54,4 +64,12 @@ export const darkColors: Palette = {
 
 export function useColors(): Palette {
   return useColorScheme() === "dark" ? darkColors : lightColors;
+}
+
+/**
+ * Force le thème de toute l'app, y compris les fenêtres natives (sélecteur
+ * de date…) ; "system" rend la main au réglage du téléphone.
+ */
+export function applyThemePreference(preference: ThemePreference): void {
+  Appearance.setColorScheme(preference === "system" ? "unspecified" : preference);
 }

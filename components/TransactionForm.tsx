@@ -1,4 +1,8 @@
-import { useMemo, useState } from "react";
+/**
+ * Formulaire d'opération (ajout et modification) : dépense ou revenu,
+ * montant, catégorie, date et note.
+ */
+import { useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,43 +16,86 @@ import {
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 
 import CategoryPicker from "@/components/CategoryPicker";
-import type { Category } from "@/constants/categories";
+import Chip from "@/components/Chip";
 import { type Palette, useColors } from "@/constants/theme";
-import type { Expense, ExpenseInput } from "@/types/expense";
+import { getCategories } from "@/db/categories";
+import type { Category, Transaction, TransactionInput, TransactionType } from "@/types/transaction";
 import { formatDisplayDate, isValidISODate, todayISO, toISODate } from "@/utils/dateHelpers";
 import { UserFacingError } from "@/utils/errors";
-import { validateExpenseInput } from "@/utils/expenseValidation";
+import { validateTransactionInput } from "@/utils/validation";
 
-interface ExpenseFormProps {
-  initialExpense?: Expense;
-  submitLabel: string;
+interface TransactionFormProps {
+  initialTransaction?: Transaction;
+  /** Type présélectionné pour un ajout (ignoré en modification). */
+  initialType?: TransactionType;
+  /** Texte du bouton ; par défaut « Enregistrer la dépense / le revenu ». */
+  submitLabel?: string;
   /** Peut lever une UserFacingError dont le message sera affiché. */
-  onSubmit: (value: ExpenseInput) => Promise<void>;
+  onSubmit: (value: TransactionInput, category: Category) => Promise<void>;
 }
 
-export default function ExpenseForm({ initialExpense, submitLabel, onSubmit }: ExpenseFormProps) {
+export default function TransactionForm({
+  initialTransaction,
+  initialType = "depense",
+  submitLabel,
+  onSubmit,
+}: TransactionFormProps) {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [amount, setAmount] = useState(initialExpense ? String(initialExpense.montant) : "");
-  const [category, setCategory] = useState<Category | null>(initialExpense?.categorie ?? null);
-  const [date, setDate] = useState(initialExpense?.date ?? todayISO());
-  const [note, setNote] = useState(initialExpense?.note ?? "");
+  const [type, setType] = useState<TransactionType>(initialTransaction?.type ?? initialType);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [amount, setAmount] = useState(initialTransaction ? String(initialTransaction.montant) : "");
+  const [categoryId, setCategoryId] = useState<number | null>(initialTransaction?.categorieId ?? null);
+  const [date, setDate] = useState(initialTransaction?.date ?? todayISO());
+  const [note, setNote] = useState(initialTransaction?.note ?? "");
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Toutes les catégories, masquées comprises : une opération existante peut
+  // appartenir à une catégorie masquée depuis.
+  useEffect(() => {
+    let active = true;
+    getCategories({ includeHidden: true })
+      .then((rows) => {
+        if (active) setCategories(rows);
+      })
+      .catch(() => {
+        if (active) setError("Impossible de charger les catégories.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const choices = categories.filter(
+    (c) => c.type === type && (!c.masquee || c.id === initialTransaction?.categorieId),
+  );
+
+  const changeType = (next: TransactionType) => {
+    if (next === type) return;
+    setType(next);
+    setCategoryId(null);
+  };
+
   const handleSubmit = async () => {
-    const validation = validateExpenseInput(amount, category, date);
+    const validation = validateTransactionInput(amount, categoryId, date);
     if (validation.error !== null) {
       setError(validation.error);
+      return;
+    }
+
+    const category = categories.find((c) => c.id === validation.value.categorieId);
+    if (!category) {
+      setError("Choisis une catégorie.");
       return;
     }
 
     setError(null);
     setSaving(true);
     try {
-      await onSubmit({ ...validation.value, note: note.trim() || null });
+      await onSubmit({ ...validation.value, note: note.trim() || null }, category);
     } catch (e) {
       setError(e instanceof UserFacingError ? e.message : "Enregistrement impossible. Réessaie.");
     } finally {
@@ -74,6 +121,11 @@ export default function ExpenseForm({ initialExpense, submitLabel, onSubmit }: E
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.types} accessibilityRole="radiogroup">
+          <Chip label="Dépense" selected={type === "depense"} onPress={() => changeType("depense")} />
+          <Chip label="Revenu" selected={type === "revenu"} onPress={() => changeType("revenu")} />
+        </View>
+
         <Text style={styles.label}>Montant · FCFA</Text>
         <TextInput
           style={styles.input}
@@ -86,7 +138,7 @@ export default function ExpenseForm({ initialExpense, submitLabel, onSubmit }: E
         />
 
         <Text style={styles.label}>Catégorie</Text>
-        <CategoryPicker value={category} onChange={setCategory} />
+        <CategoryPicker categories={choices} value={categoryId} onChange={setCategoryId} />
 
         <Text style={styles.label}>Date</Text>
         {Platform.OS === "web" ? (
@@ -96,7 +148,7 @@ export default function ExpenseForm({ initialExpense, submitLabel, onSubmit }: E
             onChangeText={setDate}
             placeholder="AAAA-MM-JJ"
             placeholderTextColor={colors.textMuted}
-            accessibilityLabel="Date de la dépense, année-mois-jour"
+            accessibilityLabel="Date, année-mois-jour"
           />
         ) : (
           <View>
@@ -104,7 +156,7 @@ export default function ExpenseForm({ initialExpense, submitLabel, onSubmit }: E
               style={styles.dateButton}
               onPress={() => setDatePickerVisible((visible) => !visible)}
               accessibilityRole="button"
-              accessibilityLabel={`Date de la dépense : ${formatDisplayDate(date)}. Changer`}
+              accessibilityLabel={`Date : ${formatDisplayDate(date)}. Changer`}
             >
               <Text style={styles.dateText}>{formatDisplayDate(date)}</Text>
               <Text style={styles.dateAction}>Changer</Text>
@@ -126,7 +178,7 @@ export default function ExpenseForm({ initialExpense, submitLabel, onSubmit }: E
           style={[styles.input, styles.noteInput]}
           value={note}
           onChangeText={setNote}
-          placeholder="Ex. déjeuner"
+          placeholder={type === "depense" ? "Ex. déjeuner" : "Ex. salaire d’octobre"}
           placeholderTextColor={colors.textMuted}
           multiline
           maxLength={280}
@@ -146,7 +198,9 @@ export default function ExpenseForm({ initialExpense, submitLabel, onSubmit }: E
           accessibilityRole="button"
           accessibilityState={{ disabled: saving, busy: saving }}
         >
-          <Text style={styles.submitText}>{saving ? "Enregistrement…" : submitLabel}</Text>
+          <Text style={styles.submitText}>{saving
+              ? "Enregistrement…"
+              : (submitLabel ?? (type === "depense" ? "Enregistrer la dépense" : "Enregistrer le revenu"))}</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -157,6 +211,7 @@ const createStyles = (c: Palette) =>
   StyleSheet.create({
     flex: { flex: 1, backgroundColor: c.background },
     content: { padding: 20, gap: 10 },
+    types: { flexDirection: "row", gap: 8 },
     label: { color: c.textMuted, fontSize: 14, fontWeight: "600", marginTop: 8 },
     input: {
       borderWidth: 1,

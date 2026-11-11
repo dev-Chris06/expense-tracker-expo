@@ -2,7 +2,7 @@
  * Interface des mises à jour sur l'accueil :
  * - UpdateBanner : vérifie une fois par lancement et signale une nouvelle
  *   version (masquable jusqu'au prochain lancement) ;
- * - UpdateFooter : version installée + vérification à la demande.
+ * - UpdateFooter : version installée + vérification à la demande (Réglages).
  */
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
@@ -122,7 +122,7 @@ const createStyles = (c: Palette) =>
     bannerLater: { color: c.textMuted, fontWeight: "700" },
     bannerButton: { backgroundColor: c.primary, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10 },
     bannerButtonText: { color: c.onPrimary, fontWeight: "700" },
-    footer: { marginTop: 24, alignItems: "center", gap: 6 },
+    footer: { alignItems: "center", gap: 6 },
     footerButton: { minHeight: 44, justifyContent: "center", paddingHorizontal: 12 },
     footerButtonText: { color: c.link, fontWeight: "700" },
     footerVersion: { color: c.textMuted, fontSize: 13 },

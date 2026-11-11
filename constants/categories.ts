@@ -1,22 +1,26 @@
 /**
- * Les 9 catégories fixes de dépenses.
- * `as const` fige le tableau : TypeScript connaît alors chaque valeur
- * littérale, ce qui permet de dériver le type `Category` ci-dessous.
+ * Choix proposés à la création ou modification d'une catégorie.
+ * Les catégories elles-mêmes vivent en base (table categories, migration v3).
  */
-export const CATEGORIES = [
-  "Nourriture",
-  "Transport",
-  "Communication",
-  "Logement",
-  "Études",
-  "Travail",
-  "Santé",
-  "Loisirs",
-  "Autre",
+export const CATEGORY_COLORS = [
+  "#E8590C",
+  "#1C7ED6",
+  "#7048E8",
+  "#0CA678",
+  "#F59F00",
+  "#495057",
+  "#E03131",
+  "#D6336C",
+  "#2F9E44",
+  "#0B7285",
+  "#AE3EC9",
+  "#868E96",
 ] as const;
 
-/**
- * Type union dérivé du tableau : "Nourriture" | "Transport" | ... | "Autre".
- * Une seule source de vérité — si on modifie la liste, le type suit.
- */
-export type Category = (typeof CATEGORIES)[number];
+export const CATEGORY_ICONS = [
+  "🍲", "🚕", "📱", "🏠", "📚", "💼", "💊", "🎉", "📦",
+  "💰", "🛒", "🎁", "➕", "👕", "⛽", "💡", "💧", "🎓",
+  "👶", "⛪", "✈️", "🏍️", "🔧", "🤝",
+] as const;
+
+export const TYPE_LABELS = { depense: "Dépense", revenu: "Revenu" } as const;

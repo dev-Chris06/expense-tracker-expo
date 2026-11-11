@@ -1,14 +1,14 @@
 import { useCallback, useMemo, useState } from "react";
-import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import Chip from "@/components/Chip";
-import { CATEGORIES, type Category } from "@/constants/categories";
 import { type Palette, useColors } from "@/constants/theme";
-import { deleteExpense, getAllExpenses } from "@/db/expenses";
-import type { Expense } from "@/types/expense";
+import { getCategories } from "@/db/categories";
+import { deleteTransaction, getAllTransactions } from "@/db/transactions";
+import type { Category, Transaction, TransactionType } from "@/types/transaction";
 import { formatDisplayDate } from "@/utils/dateHelpers";
-import { formatAmount } from "@/utils/formatters";
+import { formatAmount, formatSignedAmount } from "@/utils/formatters";
 import { matchesQuery } from "@/utils/search";
 
 export default function ListScreen() {
@@ -16,15 +16,18 @@ export default function ListScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [rows, setRows] = useState<Expense[]>([]);
+  const [rows, setRows] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<Category | null>(null);
+  const [type, setType] = useState<TransactionType | null>(null);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   const refresh = useCallback(() => {
-    getAllExpenses()
-      .then((expenses) => {
-        setRows(expenses);
+    Promise.all([getAllTransactions(), getCategories()])
+      .then(([transactions, visibleCategories]) => {
+        setRows(transactions);
+        setCategories(visibleCategories);
         setError("");
       })
       .catch(() => setError("Chargement impossible. Réessaie."));
@@ -36,21 +39,22 @@ export default function ListScreen() {
     }, [refresh]),
   );
 
-  const remove = (expense: Expense) => {
+  const remove = (transaction: Transaction) => {
+    const kind = transaction.type === "depense" ? "dépense" : "revenu";
     const action = async () => {
       try {
-        await deleteExpense(expense.id);
+        await deleteTransaction(transaction.id);
         refresh();
       } catch {
         setError("Suppression impossible.");
       }
     };
 
-    const message = `${expense.categorie} · ${formatAmount(expense.montant)} du ${formatDisplayDate(expense.date)}`;
+    const message = `${transaction.categorie} · ${formatAmount(transaction.montant)} du ${formatDisplayDate(transaction.date)}`;
     if (Platform.OS === "web") {
-      if (globalThis.confirm(`Supprimer cette dépense ?\n${message}`)) void action();
+      if (globalThis.confirm(`Supprimer ce ${kind} ?\n${message}`)) void action();
     } else {
-      Alert.alert("Supprimer la dépense ?", `${message}\nCette action est définitive.`, [
+      Alert.alert(`Supprimer ${kind === "dépense" ? "la dépense" : "le revenu"} ?`, `${message}\nCette action est définitive.`, [
         { text: "Annuler", style: "cancel" },
         { text: "Supprimer", style: "destructive", onPress: () => void action() },
       ]);
@@ -58,8 +62,16 @@ export default function ListScreen() {
   };
 
   const filtered = rows.filter(
-    (expense) => (!category || expense.categorie === category) && matchesQuery(expense, query),
+    (t) =>
+      (!type || t.type === type) &&
+      (categoryId === null || t.categorieId === categoryId) &&
+      matchesQuery(t, query),
   );
+
+  const selectType = (next: TransactionType | null) => {
+    setType(next);
+    setCategoryId(null);
+  };
 
   return (
     <View style={styles.page}>
@@ -69,28 +81,36 @@ export default function ListScreen() {
         placeholder="Rechercher (catégorie, note, date, montant)"
         placeholderTextColor={colors.textMuted}
         style={styles.search}
-        accessibilityLabel="Rechercher une dépense"
+        accessibilityLabel="Rechercher une opération"
         clearButtonMode="while-editing"
       />
       <View style={styles.chips}>
-        <Chip label="Tout" selected={!category} onPress={() => setCategory(null)} />
-        {CATEGORIES.map((c) => (
-          <Chip
-            key={c}
-            label={c}
-            selected={category === c}
-            onPress={() => setCategory(category === c ? null : c)}
-          />
-        ))}
+        <Chip label="Tout" selected={!type} onPress={() => selectType(null)} />
+        <Chip label="Dépenses" selected={type === "depense"} onPress={() => selectType("depense")} />
+        <Chip label="Revenus" selected={type === "revenu"} onPress={() => selectType("revenu")} />
       </View>
+      {type && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryChips}>
+          {categories
+            .filter((c) => c.type === type)
+            .map((c) => (
+              <Chip
+                key={c.id}
+                label={`${c.icone} ${c.nom}`}
+                selected={categoryId === c.id}
+                onPress={() => setCategoryId(categoryId === c.id ? null : c.id)}
+              />
+            ))}
+        </ScrollView>
+      )}
       {!!error && <Text style={styles.error}>{error}</Text>}
       <FlatList
         data={filtered}
-        keyExtractor={(expense) => String(expense.id)}
+        keyExtractor={(t) => String(t.id)}
         contentContainerStyle={!filtered.length ? styles.emptyList : undefined}
         ListEmptyComponent={
           <Text style={styles.empty}>
-            {rows.length ? "Aucune dépense ne correspond à la recherche." : "Aucune dépense pour le moment."}
+            {rows.length ? "Aucune opération ne correspond à la recherche." : "Aucune opération pour le moment."}
           </Text>
         }
         renderItem={({ item }) => (
@@ -99,22 +119,26 @@ export default function ListScreen() {
               style={styles.main}
               onPress={() => router.push(`/edit/${item.id}`)}
               accessibilityRole="button"
-              accessibilityHint="Ouvre la dépense pour la modifier"
+              accessibilityHint="Ouvre l’opération pour la modifier"
             >
-              <Text style={styles.category}>{item.categorie}</Text>
+              <Text style={styles.category}>
+                {item.icone} {item.categorie}
+              </Text>
               <Text style={styles.muted} numberOfLines={2}>
                 {formatDisplayDate(item.date)}
                 {item.note ? ` · ${item.note}` : ""}
               </Text>
             </Pressable>
             <View style={styles.actions}>
-              <Text style={styles.amount}>{formatAmount(item.montant)}</Text>
+              <Text style={[styles.amount, item.type === "revenu" && { color: colors.success }]}>
+                {formatSignedAmount(item.montant, item.type)}
+              </Text>
               <Pressable
                 onPress={() => remove(item)}
                 style={styles.deleteButton}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel={`Supprimer la dépense ${item.categorie} de ${formatAmount(item.montant)}`}
+                accessibilityLabel={`Supprimer ${item.categorie}, ${formatAmount(item.montant)}`}
               >
                 <Text style={styles.delete}>Supprimer</Text>
               </Pressable>
@@ -139,6 +163,7 @@ const createStyles = (c: Palette) =>
       fontSize: 16,
     },
     chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    categoryChips: { gap: 8, paddingRight: 8 },
     error: { color: c.danger },
     row: {
       flexDirection: "row",
