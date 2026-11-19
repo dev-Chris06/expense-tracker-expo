@@ -8,7 +8,7 @@ export interface Category {
   type: TransactionType;
   /** Couleur "#RRGGBB" */
   couleur: string;
-  /** Emoji affiché devant le nom */
+  /** Nom d'icône Ionicons (voir constants/categories.ts) */
   icone: string;
   /** Masquée : absente des choix du formulaire, ses opérations restent. */
   masquee: boolean;

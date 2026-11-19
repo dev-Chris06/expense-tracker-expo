@@ -6,18 +6,19 @@
  * toutes les migrations dont l'index est >= à la version actuelle.
  *
  * Règle d'or : une migration publiée ne se modifie JAMAIS. Pour changer le
- * schéma (nouvelle colonne, nouvelle catégorie autorisée…), on ajoute une
- * nouvelle entrée à la fin du tableau. C'est pour ça que la liste des
- * catégories est figée en dur ici au lieu d'être générée depuis CATEGORIES :
- * si on modifie CATEGORIES, il faut écrire une migration qui reconstruit la
- * table avec la nouvelle contrainte CHECK.
+ * schéma (nouvelle colonne, nouvelle table, conversion de données…), on
+ * ajoute une nouvelle entrée à la fin du tableau. Les migrations v1 et v2
+ * gardent donc leur liste de catégories figée (contrainte CHECK) : depuis la
+ * v3, les catégories vivent dans la table `categories` et se gèrent dans l'app.
  *
- * Choix de types SQLite :
- * - montant  → INTEGER : le franc CFA n'a pas de centimes, et les entiers
- *   garantissent des totaux exacts (pas d'erreur d'arrondi des flottants).
- * - categorie → TEXT + CHECK : la base refuse toute catégorie inconnue.
- * - date     → TEXT ISO "YYYY-MM-DD" : se trie et se compare en texte.
- * - note     → TEXT nullable.
+ * Choix de types SQLite (schéma actuel) :
+ * - transactions.montant → INTEGER : le franc CFA n'a pas de centimes, et les
+ *   entiers garantissent des totaux exacts (pas d'erreur d'arrondi).
+ * - transactions.categorie_id → clé étrangère vers categories (le type
+ *   dépense / revenu vient de la catégorie).
+ * - transactions.date → TEXT ISO "YYYY-MM-DD" : se trie et se compare en texte.
+ * - transactions.note → TEXT nullable.
+ * - categories.icone → nom d'icône Ionicons (emoji avant la v4).
  */
 
 export const MIGRATIONS: readonly string[] = [

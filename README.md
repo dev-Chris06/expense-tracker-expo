@@ -89,13 +89,26 @@ elle-même les nouvelles versions.
 **Publier une version** :
 
 1. Mettre à jour `expo.version` **et** incrémenter `expo.android.versionCode`
-   dans `app.json`.
-2. Commiter, puis pousser un tag correspondant : `git tag v1.2.0 && git push origin v1.2.0`.
+   dans `app.json` (et garder `version` de `package.json` identique).
+2. Commiter, puis pousser un tag correspondant : `git tag v1.3.2 && git push origin v1.3.2`.
 3. Le workflow **Build Android APK** publie l'APK et un `version.json` dans les
    Releases. C'est ce fichier que l'app lit pour détecter la mise à jour.
 
 Le workflow peut aussi être lancé à la main (onglet Actions → *Run workflow*) :
 l'APK est alors dans un artefact (zip), sans release ni mise à jour proposée.
+
+Si la construction échoue sur « Could not find … » (téléchargement Gradle /
+Maven), c'est en général passager : relancer le job (`gh run rerun <id> --failed`).
+
+**Installer directement par USB** (téléphone branché, débogage USB activé) :
+
+```bash
+gh release download v1.3.2 -p 'depenses-expo-*.apk'
+adb install -r depenses-expo-1.3.2.apk   # -r : mise à jour, données conservées
+```
+
+Le nom du fichier APK (`depenses-expo-…`) est volontairement conservé :
+`utils/updates.ts` construit le lien de téléchargement avec ce nom.
 
 Avant de publier, lancer **Smoke test (emulator)** (onglet Actions) : l'app
 est installée et lancée sur des émulateurs Android 7 à 16 ; le journal et
