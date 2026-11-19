@@ -9,6 +9,7 @@
  *   app/(tabs)/settings.tsx → "/settings"  ┘
  *   app/add.tsx       → "/add" (saisie rapide, ouverte par le ＋)
  *   app/edit/[id].tsx → "/edit/42" (route dynamique, id récupérable)
+ *   app/budget.tsx    → "/budget" (budget global du mois)
  *   app/categories.tsx → "/categories"
  *   app/category/[id].tsx → "/category/3" ou "/category/new"
  *
@@ -62,6 +63,7 @@ export default function RootLayout() {
           options={{ headerShown: false, title: "Nouvelle opération", animation: "slide_from_bottom" }}
         />
         <Stack.Screen name="edit/[id]" options={{ headerShown: false, title: "Modifier" }} />
+        <Stack.Screen name="budget" options={{ headerShown: false, title: "Budget du mois" }} />
         <Stack.Screen name="categories" options={{ title: "Catégories" }} />
         <Stack.Screen name="category/[id]" options={{ title: "Catégorie" }} />
       </Stack>

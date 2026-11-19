@@ -23,16 +23,18 @@ import { CATEGORY_COLORS, CATEGORY_ICONS } from "@/constants/categories";
 import { type Palette, useColors } from "@/constants/theme";
 import { addCategory, getCategoryById, updateCategory } from "@/db/categories";
 import type { TransactionType } from "@/types/transaction";
+import { rememberCreatedCategory } from "@/utils/createdCategory";
 import { UserFacingError } from "@/utils/errors";
 import { MAX_CATEGORY_NAME, validateCategoryInput } from "@/utils/validation";
 
 export default function CategoryScreen() {
-  const { id, type: typeParam } = useLocalSearchParams<{ id: string; type?: string }>();
+  const { id, type: typeParam, from } = useLocalSearchParams<{ id: string; type?: string; from?: string }>();
   const router = useRouter();
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const isNew = id === "new";
+  const fromEntry = isNew && from === "entry";
   const numericId = Number(id);
 
   const [loading, setLoading] = useState(!isNew);
@@ -84,7 +86,9 @@ export default function CategoryScreen() {
     setSaving(true);
     try {
       if (isNew) {
-        await addCategory(validation.value);
+        const newId = await addCategory(validation.value);
+        // Ouverte depuis la saisie : la nouvelle catégorie y sera choisie au retour.
+        if (fromEntry) rememberCreatedCategory({ id: newId, type: validation.value.type });
       } else if (!(await updateCategory(numericId, validation.value))) {
         throw new UserFacingError("Cette catégorie n’existe plus.");
       }
@@ -203,7 +207,9 @@ export default function CategoryScreen() {
           accessibilityRole="button"
           accessibilityState={{ disabled: saving, busy: saving }}
         >
-          <Text style={styles.submitText}>{saving ? "Enregistrement…" : "Enregistrer"}</Text>
+          <Text style={styles.submitText}>
+            {saving ? "Enregistrement…" : fromEntry ? "Créer et utiliser" : isNew ? "Créer la catégorie" : "Enregistrer"}
+          </Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>

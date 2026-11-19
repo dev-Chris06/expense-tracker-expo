@@ -103,3 +103,14 @@ describe("months", () => {
     expect(greeting(new Date(2026, 10, 19, 20))).toBe("Bonsoir");
   });
 });
+
+describe("category created from quick entry", () => {
+  it("is handed over once, then forgotten", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { rememberCreatedCategory, takeCreatedCategory } = require("../utils/createdCategory");
+    expect(takeCreatedCategory()).toBeNull();
+    rememberCreatedCategory({ id: 42, type: "revenu" });
+    expect(takeCreatedCategory()).toEqual({ id: 42, type: "revenu" });
+    expect(takeCreatedCategory()).toBeNull();
+  });
+});

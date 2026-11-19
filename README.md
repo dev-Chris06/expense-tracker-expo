@@ -1,23 +1,28 @@
-# Dépenses — version Expo (React Native)
+# Dépenses Perso (Expo / React Native)
 
-Application mobile de suivi de dépenses personnelles en FCFA, 100 % hors
-ligne (SQLite local). Version **React Native / Expo** du comparatif
-Expo vs Flutter ; la version Flutter vit dans le dépôt `expense-tracker-flutter`
-avec exactement les mêmes fonctionnalités.
+Application mobile de suivi de dépenses personnelles, 100 % hors ligne
+(SQLite local), écrite avec React Native / Expo. Les montants sont pour
+l'instant en FCFA ; le choix de la devise est prévu.
+
+Née d'un comparatif Expo vs Flutter : la version Flutter (dépôt
+`expense-tracker-flutter`) n'est plus développée.
 
 ## Fonctionnalités
 
 - **Navigation par onglets** : Accueil, Opérations, Stats, Réglages, et un
   bouton ＋ central toujours visible pour ajouter une opération.
-- **Accueil** : solde du mois (revenus − dépenses), suivi des budgets,
-  5 dernières opérations.
+- **Accueil** : solde du mois (revenus − dépenses), suivi des budgets
+  (bouton « Définir mon budget du mois » s'il n'y en a pas), 5 dernières
+  opérations.
 - **Saisie rapide** : pavé numérique intégré (touche « 000 », appui long
   sur ⌫ pour tout effacer), catégories les plus utilisées en premier, date
-  « aujourd'hui » par défaut, note facultative (280 car.). Le même écran sert
-  à modifier ou supprimer une opération.
+  « aujourd'hui » par défaut, note facultative (280 car.). La case
+  « ＋ Nouvelle » crée une catégorie et la sélectionne aussitôt. Le même écran
+  sert à modifier ou supprimer une opération.
 - **Catégories personnalisables** : création, renommage, icône vectorielle,
   couleur, masquage (les opérations passées sont conservées).
-- **Budgets** : budget global du mois et budget par catégorie ; barres
+- **Budgets** : budget global du mois (écran dédié avec pavé numérique et
+  montants suggérés) et budget par catégorie ; barres
   orange à 80 %, rouges à 100 %, alerte quand une dépense franchit un seuil.
 - **Opérations** : groupées par jour avec le total du jour, navigation par
   mois, recherche dans tous les mois (sans accents ni casse), filtres
@@ -26,8 +31,10 @@ avec exactement les mêmes fonctionnalités.
 - **Statistiques** : dépenses, revenus et solde d'un mois (‹ ›), moyenne
   par jour, évolution par rapport au mois précédent, répartition par
   catégorie, graphique des 6 derniers mois.
-- **Réglages** : thème (comme le téléphone, clair, sombre), budget global,
+- **Réglages** : thème (comme le téléphone, clair, sombre), budget du mois,
   catégories, version et recherche de mise à jour.
+- **Icône** : portefeuille marqué d'un « F » (sources SVG et commande de
+  génération dans `assets/icon/`).
 - **Mises à jour** : l'accueil signale une nouvelle version publiée ;
   l'APK s'ouvre dans le navigateur.
 

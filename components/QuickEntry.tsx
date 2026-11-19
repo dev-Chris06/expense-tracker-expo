@@ -8,7 +8,7 @@
  */
 import Ionicons from "@expo/vector-icons/Ionicons";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -19,17 +19,20 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import CategoryIcon from "@/components/CategoryIcon";
+import Keypad from "@/components/Keypad";
 import { type Palette, useColors } from "@/constants/theme";
 import { getCategories } from "@/db/categories";
 import { getCategoryUsage } from "@/db/transactions";
 import type { Category, Transaction, TransactionInput, TransactionType } from "@/types/transaction";
+import { takeCreatedCategory } from "@/utils/createdCategory";
 import { isValidISODate, todayISO, toISODate } from "@/utils/dateHelpers";
 import { UserFacingError } from "@/utils/errors";
 import { dayLabel } from "@/utils/grouping";
-import { formatDigits, KEYPAD_KEYS, type KeypadKey, pressKey } from "@/utils/keypad";
+import { formatDigits, type KeypadKey, pressKey } from "@/utils/keypad";
 import { validateTransactionInput } from "@/utils/validation";
 
 /** Nombre de catégories visibles avant « Toutes ». */
@@ -60,6 +63,7 @@ function daysAgoISO(days: number): string {
 }
 
 export default function QuickEntry({ initialTransaction, initialType = "depense", onSubmit, onClose, onDelete }: QuickEntryProps) {
+  const router = useRouter();
   const colors = useColors();
   const { height } = useWindowDimensions();
   const compact = height < 720;
@@ -80,22 +84,31 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
   const [saving, setSaving] = useState(false);
 
   // Toutes les catégories, masquées comprises : une opération existante peut
-  // appartenir à une catégorie masquée depuis.
-  useEffect(() => {
-    let active = true;
-    Promise.all([getCategories({ includeHidden: true }), getCategoryUsage(daysAgoISO(USAGE_DAYS))])
-      .then(([rows, counts]) => {
-        if (!active) return;
-        setCategories(rows);
-        setUsage(counts);
-      })
-      .catch(() => {
-        if (active) setError("Impossible de charger les catégories.");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  // appartenir à une catégorie masquée depuis. Rechargées à chaque retour sur
+  // l'écran, pour inclure une catégorie créée avec « Nouvelle ».
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      Promise.all([getCategories({ includeHidden: true }), getCategoryUsage(daysAgoISO(USAGE_DAYS))])
+        .then(([rows, counts]) => {
+          if (!active) return;
+          setCategories(rows);
+          setUsage(counts);
+          const created = takeCreatedCategory();
+          if (created && rows.some((c) => c.id === created.id)) {
+            setType(created.type);
+            setCategoryId(created.id);
+            setError(null);
+          }
+        })
+        .catch(() => {
+          if (active) setError("Impossible de charger les catégories.");
+        });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   const choices = useMemo(() => {
     const ofType = categories.filter(
@@ -106,7 +119,7 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
   }, [categories, type, usage, initialTransaction?.categorieId]);
 
   const visible = useMemo(() => {
-    if (showAll || choices.length <= VISIBLE_CATEGORIES + 1) return choices;
+    if (showAll || choices.length <= VISIBLE_CATEGORIES) return choices;
     const first = choices.slice(0, VISIBLE_CATEGORIES);
     const selected = choices.find((c) => c.id === categoryId);
     // La catégorie choisie reste visible même si elle est peu utilisée.
@@ -235,9 +248,29 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
           Catégorie <Text style={styles.labelHint}>· les plus utilisées d’abord</Text>
         </Text>
         <View style={styles.grid} accessibilityRole="radiogroup">
-          {chunk(visible, 3).map((row, index) => (
+          {chunk<Category | null>([...visible, null], 3).map((row, index) => (
             <View key={index} style={styles.gridRow}>
               {row.map((category) => {
+                if (category === null) {
+                  return (
+                    <Pressable
+                      key="new"
+                      onPress={() =>
+                        router.push({ pathname: "/category/[id]", params: { id: "new", type, from: "entry" } })
+                      }
+                      style={[styles.category, styles.newCategory, { borderColor: accent }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Nouvelle catégorie de ${type === "depense" ? "dépense" : "revenu"}`}
+                    >
+                      <View style={styles.newIcon}>
+                        <Ionicons name="add" size={18} color={accent} />
+                      </View>
+                      <Text style={[styles.categoryText, { color: accent }]} numberOfLines={1}>
+                        Nouvelle
+                      </Text>
+                    </Pressable>
+                  );
+                }
                 const selected = category.id === categoryId;
                 return (
                   <Pressable
@@ -264,7 +297,7 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
             </View>
           ))}
         </View>
-        {(hiddenCount > 0 || showAll) && choices.length > VISIBLE_CATEGORIES + 1 && (
+        {(hiddenCount > 0 || showAll) && choices.length > VISIBLE_CATEGORIES && (
           <Pressable onPress={() => setShowAll((value) => !value)} style={styles.moreButton} accessibilityRole="button">
             <Text style={styles.moreText}>{showAll ? "Moins de catégories" : `Toutes les catégories (${choices.length})`}</Text>
           </Pressable>
@@ -327,30 +360,7 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
       </ScrollView>
 
       {/* Le pavé laisse la place au clavier du téléphone pendant la saisie de la note. */}
-      {!noteFocused && (
-        <View style={styles.keypad}>
-          {chunk([...KEYPAD_KEYS], 3).map((row, index) => (
-            <View key={index} style={styles.keypadRow}>
-              {row.map((key) => (
-                <Pressable
-                  key={key}
-                  onPress={() => press(key)}
-                  onLongPress={key === "back" ? () => setAmount("") : undefined}
-                  style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}
-                  accessibilityRole="button"
-                  accessibilityLabel={key === "back" ? "Effacer (appui long : tout effacer)" : key}
-                >
-                  {key === "back" ? (
-                    <Ionicons name="backspace-outline" size={26} color={colors.text} />
-                  ) : (
-                    <Text style={styles.keyText}>{key}</Text>
-                  )}
-                </Pressable>
-              ))}
-            </View>
-          ))}
-        </View>
-      )}
+      {!noteFocused && <Keypad onKey={press} onClear={() => setAmount("")} compact={compact} />}
 
       <View style={styles.footer}>
         <Pressable
@@ -407,6 +417,15 @@ const createStyles = (c: Palette, compact: boolean) =>
       backgroundColor: c.surface,
     },
     categoryPlaceholder: { flex: 1 },
+    newCategory: { borderStyle: "dashed", backgroundColor: c.surfaceMuted },
+    newIcon: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      backgroundColor: c.surface,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     categoryText: { flex: 1, color: c.text, fontSize: 13, fontWeight: "600" },
     moreButton: { alignSelf: "center", paddingVertical: 8, paddingHorizontal: 12 },
     moreText: { color: c.link, fontSize: 14, fontWeight: "600" },
@@ -436,18 +455,6 @@ const createStyles = (c: Palette, compact: boolean) =>
       backgroundColor: c.surface,
       color: c.text,
     },
-    keypad: { paddingHorizontal: 12, gap: 8 },
-    keypadRow: { flexDirection: "row", gap: 8 },
-    key: {
-      flex: 1,
-      height: compact ? 46 : 54,
-      borderRadius: 14,
-      backgroundColor: c.surfaceMuted,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    keyPressed: { opacity: 0.55 },
-    keyText: { color: c.text, fontSize: 22, fontWeight: "600" },
     footer: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 8 },
     submit: { minHeight: 54, borderRadius: 14, alignItems: "center", justifyContent: "center" },
     disabled: { opacity: 0.6 },

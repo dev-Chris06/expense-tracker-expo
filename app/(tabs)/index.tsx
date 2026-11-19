@@ -2,6 +2,7 @@
  * Accueil : solde du mois, budgets et dernières opérations.
  * L'ajout se fait avec le ＋ de la barre d'onglets.
  */
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -106,7 +107,7 @@ export default function HomeScreen() {
           <View style={styles.cardHeader}>
             <Text style={styles.section}>Budgets du mois</Text>
             {hasBudgets && (
-              <Pressable onPress={() => router.navigate("/settings")} hitSlop={8} accessibilityRole="button">
+              <Pressable onPress={() => router.push("/budget")} hitSlop={8} accessibilityRole="button">
                 <Text style={styles.link}>Modifier</Text>
               </Pressable>
             )}
@@ -126,11 +127,17 @@ export default function HomeScreen() {
               )}
             </>
           ) : (
-            <Pressable onPress={() => router.navigate("/settings")} accessibilityRole="button" style={styles.emptyButton}>
-              <Text style={styles.muted}>
-                Aucun budget pour l’instant. <Text style={styles.link}>Définir un budget</Text>
-              </Text>
-            </Pressable>
+            <>
+              <Text style={styles.muted}>Fixe un plafond de dépenses : tu seras prévenu à 80 % puis à 100 %.</Text>
+              <Pressable
+                onPress={() => router.push("/budget")}
+                style={({ pressed }) => [styles.budgetButton, pressed && styles.pressed]}
+                accessibilityRole="button"
+              >
+                <Ionicons name="add" size={20} color={colors.onPrimary} />
+                <Text style={styles.budgetButtonText}>Définir mon budget du mois</Text>
+              </Pressable>
+            </>
           )}
         </View>
 
@@ -200,6 +207,15 @@ const createStyles = (c: Palette) =>
     section: { color: c.text, fontSize: 16, fontWeight: "700" },
     link: { color: c.link, fontSize: 14, fontWeight: "600" },
     budgetRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-    emptyButton: { minHeight: 44, justifyContent: "center" },
+    budgetButton: {
+      minHeight: 48,
+      borderRadius: 14,
+      backgroundColor: c.primary,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+    },
+    budgetButtonText: { color: c.onPrimary, fontSize: 15, fontWeight: "700" },
     muted: { color: c.textMuted, fontSize: 14, lineHeight: 20 },
   });
