@@ -101,6 +101,38 @@ export const MIGRATIONS: readonly string[] = [
     valeur TEXT NOT NULL
   );
   `,
+  // v4 — icônes vectorielles (Ionicons) à la place des emojis : rendu
+  // identique sur tous les téléphones. Chaque emoji proposé jusqu'ici a son
+  // équivalent ; une valeur inconnue devient une étiquette générique.
+  `
+  UPDATE categories SET icone = CASE
+    WHEN icone = '🍲' THEN 'restaurant-outline'
+    WHEN icone = '🚕' THEN 'car-outline'
+    WHEN icone = '📱' THEN 'phone-portrait-outline'
+    WHEN icone = '🏠' THEN 'home-outline'
+    WHEN icone = '📚' THEN 'book-outline'
+    WHEN icone = '💼' THEN 'briefcase-outline'
+    WHEN icone = '💊' THEN 'medkit-outline'
+    WHEN icone = '🎉' THEN 'happy-outline'
+    WHEN icone = '📦' THEN 'cube-outline'
+    WHEN icone = '💰' THEN 'cash-outline'
+    WHEN icone = '🛒' THEN 'storefront-outline'
+    WHEN icone = '🎁' THEN 'gift-outline'
+    WHEN icone = '➕' THEN 'add-circle-outline'
+    WHEN icone = '👕' THEN 'shirt-outline'
+    WHEN icone = '⛽' THEN 'speedometer-outline'
+    WHEN icone = '💡' THEN 'bulb-outline'
+    WHEN icone = '💧' THEN 'water-outline'
+    WHEN icone = '🎓' THEN 'school-outline'
+    WHEN icone = '👶' THEN 'body-outline'
+    WHEN icone = '⛪' THEN 'heart-outline'
+    WHEN icone IN ('✈️', '✈') THEN 'airplane-outline'
+    WHEN icone IN ('🏍️', '🏍') THEN 'bicycle-outline'
+    WHEN icone = '🔧' THEN 'construct-outline'
+    WHEN icone = '🤝' THEN 'people-outline'
+    ELSE 'pricetag-outline'
+  END;
+  `,
 ];
 
 /** Version du schéma après application de toutes les migrations. */

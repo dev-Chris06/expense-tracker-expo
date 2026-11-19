@@ -24,6 +24,10 @@ export interface Palette {
   heroText: string;
   heroTextMuted: string;
   barTrack: string;
+  /** Fond discret : touches du pavé, contrôles segmentés */
+  surfaceMuted: string;
+  /** Séparateur entre lignes d'une carte */
+  divider: string;
 }
 
 export const lightColors: Palette = {
@@ -42,6 +46,8 @@ export const lightColors: Palette = {
   heroText: "#FFFFFF",
   heroTextMuted: "#D9EAF7",
   barTrack: "#EAECF0",
+  surfaceMuted: "#F2F4F7",
+  divider: "#F2F4F7",
 };
 
 export const darkColors: Palette = {
@@ -60,6 +66,8 @@ export const darkColors: Palette = {
   heroText: "#FFFFFF",
   heroTextMuted: "#D9EAF7",
   barTrack: "#2E3A4F",
+  surfaceMuted: "#1F2B40",
+  divider: "#223047",
 };
 
 export function useColors(): Palette {

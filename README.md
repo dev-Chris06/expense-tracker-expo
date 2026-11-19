@@ -7,36 +7,47 @@ avec exactement les mêmes fonctionnalités.
 
 ## Fonctionnalités
 
+- **Navigation par onglets** : Accueil, Opérations, Stats, Réglages, et un
+  bouton ＋ central toujours visible pour ajouter une opération.
 - **Accueil** : solde du mois (revenus − dépenses), suivi des budgets,
-  dernière opération, ajout rapide d'une dépense ou d'un revenu.
-- **Dépenses et revenus** : montant entier en FCFA (« 1 500 » accepté),
-  catégorie, date (sélecteur natif), note facultative (280 car.).
-- **Catégories personnalisables** : création, renommage, icône (emoji),
+  5 dernières opérations.
+- **Saisie rapide** : pavé numérique intégré (touche « 000 », appui long
+  sur ⌫ pour tout effacer), catégories les plus utilisées en premier, date
+  « aujourd'hui » par défaut, note facultative (280 car.). Le même écran sert
+  à modifier ou supprimer une opération.
+- **Catégories personnalisables** : création, renommage, icône vectorielle,
   couleur, masquage (les opérations passées sont conservées).
 - **Budgets** : budget global du mois et budget par catégorie ; barres
   orange à 80 %, rouges à 100 %, alerte quand une dépense franchit un seuil.
-- **Liste** : recherche sans accents ni casse (catégorie, note, date,
-  montant), filtres dépenses / revenus puis par catégorie, suppression
-  avec confirmation.
-- **Statistiques** : dépenses, revenus et solde d'un mois (navigation ‹ ›),
-  répartition par catégorie, historique des 12 derniers mois.
+- **Opérations** : groupées par jour avec le total du jour, navigation par
+  mois, recherche dans tous les mois (sans accents ni casse), filtres
+  dépenses / revenus puis par catégorie, tri (récentes, anciennes, montant),
+  appui long pour supprimer.
+- **Statistiques** : dépenses, revenus et solde d'un mois (‹ ›), moyenne
+  par jour, évolution par rapport au mois précédent, répartition par
+  catégorie, graphique des 6 derniers mois.
 - **Réglages** : thème (comme le téléphone, clair, sombre), budget global,
   catégories, version et recherche de mise à jour.
 - **Mises à jour** : l'accueil signale une nouvelle version publiée ;
   l'APK s'ouvre dans le navigateur.
 
+L'app ne lit aucun compte (Mobile Money, banque) : elle ne connaît que ce
+que l'utilisateur saisit.
+
 ## Stack
 
-Expo SDK 58 · React Native 0.88 · expo-router · expo-sqlite · TypeScript strict · Jest
+Expo SDK 58 · React Native 0.88 · expo-router · expo-sqlite · @expo/vector-icons (Ionicons) · TypeScript strict · Jest
 
 ```
-app/          écrans (routing par fichiers : index, add, list, stats, edit/[id],
-              settings, categories, category/[id])
-components/   TransactionForm, CategoryPicker, Chip, BudgetBar, mises à jour
+app/          écrans (routing par fichiers) : (tabs)/ = onglets index, list,
+              stats, settings ; add, edit/[id], categories, category/[id]
+components/   TabBar, QuickEntry (saisie), TransactionRow, CategoryIcon,
+              MonthNav, Chip, BudgetBar, mises à jour
 constants/    couleurs et icônes de catégories, palettes clair/sombre
 db/           connexion, migrations (PRAGMA user_version), transactions,
               catégories, réglages
-utils/        validation, formatage, dates, mois, recherche, budgets, mises à jour
+utils/        validation, formatage, dates, mois, pavé numérique, regroupement
+              par jour, recherche, budgets, mises à jour
 __tests__/    tests unitaires + test des migrations sur SQLite réel (node:sqlite)
 ```
 

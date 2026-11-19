@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import TransactionForm from "@/components/TransactionForm";
+import { confirmDeleteTransaction } from "@/components/confirmDelete";
+import QuickEntry from "@/components/QuickEntry";
 import { type Palette, useColors } from "@/constants/theme";
-import { getTransactionById, updateTransaction } from "@/db/transactions";
+import { deleteTransaction, getTransactionById, updateTransaction } from "@/db/transactions";
 import type { Transaction } from "@/types/transaction";
 import { UserFacingError } from "@/utils/errors";
 
@@ -20,6 +21,8 @@ export default function EditScreen() {
 
   const numericId = Number(id);
   const invalidId = !Number.isInteger(numericId) || numericId <= 0;
+  // Retour à l'écran d'origine (accueil ou liste), qui se recharge seul.
+  const close = () => (router.canGoBack() ? router.back() : router.replace("/list"));
 
   useEffect(() => {
     if (invalidId) return;
@@ -54,7 +57,7 @@ export default function EditScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.error}>{invalidId ? "Cette opération est introuvable." : error}</Text>
-        <Pressable onPress={() => router.replace("/list")} accessibilityRole="button">
+        <Pressable onPress={() => router.replace("/list")} accessibilityRole="button" style={styles.linkButton}>
           <Text style={styles.link}>Retour à la liste</Text>
         </Pressable>
       </View>
@@ -62,17 +65,22 @@ export default function EditScreen() {
   }
 
   return (
-    <TransactionForm
+    <QuickEntry
       initialTransaction={transaction}
-      submitLabel="Enregistrer les modifications"
+      onClose={close}
+      onDelete={() =>
+        confirmDeleteTransaction(transaction, () => {
+          deleteTransaction(transaction.id)
+            .then(close)
+            .catch(() => Alert.alert("Suppression impossible", "Réessaie dans un instant."));
+        })
+      }
       onSubmit={async (value) => {
         const updated = await updateTransaction(transaction.id, value);
         if (!updated) {
           throw new UserFacingError("Cette opération n’existe plus : elle a peut-être été supprimée.");
         }
-        // Retour à l'écran d'origine (accueil ou liste), qui se recharge seul.
-        if (router.canGoBack()) router.back();
-        else router.replace("/list");
+        close();
       }}
     />
   );
@@ -83,5 +91,6 @@ const createStyles = (c: Palette) =>
     center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, backgroundColor: c.background },
     text: { color: c.text },
     error: { color: c.danger },
+    linkButton: { minHeight: 44, justifyContent: "center", paddingHorizontal: 12 },
     link: { color: c.link, fontWeight: "700" },
   });

@@ -3,18 +3,18 @@
  *
  * Chaque fichier dans app/ devient automatiquement une route
  * (routing basé sur les fichiers, comme Next.js) :
- *   app/index.tsx     → "/"
- *   app/add.tsx       → "/add"
- *   app/list.tsx      → "/list"
- *   app/stats.tsx     → "/stats"
- *   app/settings.tsx  → "/settings"
+ *   app/(tabs)/index.tsx    → "/"          ┐
+ *   app/(tabs)/list.tsx     → "/list"      │ onglets du bas,
+ *   app/(tabs)/stats.tsx    → "/stats"     │ voir app/(tabs)/_layout.tsx
+ *   app/(tabs)/settings.tsx → "/settings"  ┘
+ *   app/add.tsx       → "/add" (saisie rapide, ouverte par le ＋)
+ *   app/edit/[id].tsx → "/edit/42" (route dynamique, id récupérable)
  *   app/categories.tsx → "/categories"
  *   app/category/[id].tsx → "/category/3" ou "/category/new"
- *   app/edit/[id].tsx → "/edit/42" (route dynamique, id récupérable)
  *
- * <Stack> fournit une navigation en pile : chaque écran s'empile sur le
- * précédent avec un bouton retour automatique. Le ThemeProvider aligne les
- * en-têtes de navigation sur le thème clair/sombre du système.
+ * <Stack> fournit une navigation en pile : la saisie, la modification et
+ * les catégories s'empilent par-dessus les onglets. Le ThemeProvider aligne
+ * les en-têtes de navigation sur le thème clair/sombre.
  */
 import { useState } from "react";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
@@ -56,14 +56,14 @@ export default function RootLayout() {
     <ThemeProvider value={theme}>
       <StatusBar style="auto" />
       <Stack>
-        <Stack.Screen name="index" options={{ title: "Accueil" }} />
-        <Stack.Screen name="add" options={{ title: "Nouvelle opération" }} />
-        <Stack.Screen name="list" options={{ title: "Mes opérations" }} />
-        <Stack.Screen name="stats" options={{ title: "Statistiques" }} />
-        <Stack.Screen name="settings" options={{ title: "Réglages" }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: "Accueil" }} />
+        <Stack.Screen
+          name="add"
+          options={{ headerShown: false, title: "Nouvelle opération", animation: "slide_from_bottom" }}
+        />
+        <Stack.Screen name="edit/[id]" options={{ headerShown: false, title: "Modifier" }} />
         <Stack.Screen name="categories" options={{ title: "Catégories" }} />
         <Stack.Screen name="category/[id]" options={{ title: "Catégorie" }} />
-        <Stack.Screen name="edit/[id]" options={{ title: "Modifier" }} />
       </Stack>
     </ThemeProvider>
   );

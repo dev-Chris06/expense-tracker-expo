@@ -15,8 +15,10 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
+import CategoryIcon from "@/components/CategoryIcon";
 import { CATEGORY_COLORS, CATEGORY_ICONS } from "@/constants/categories";
 import { type Palette, useColors } from "@/constants/theme";
 import { addCategory, getCategoryById, updateCategory } from "@/db/categories";
@@ -114,9 +116,7 @@ export default function CategoryScreen() {
       <Stack.Screen options={{ title }} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.preview}>
-          <View style={[styles.previewIcon, { backgroundColor: couleur }]}>
-            <Text style={styles.previewEmoji}>{icone}</Text>
-          </View>
+          <CategoryIcon icon={icone} color={couleur} size={52} />
           <Text style={styles.previewName}>{nom.trim() || "Nom de la catégorie"}</Text>
         </View>
 
@@ -133,16 +133,16 @@ export default function CategoryScreen() {
 
         <Text style={styles.label}>Icône</Text>
         <View style={styles.grid} accessibilityRole="radiogroup">
-          {CATEGORY_ICONS.map((emoji) => (
+          {CATEGORY_ICONS.map((name, index) => (
             <Pressable
-              key={emoji}
-              onPress={() => setIcone(emoji)}
-              style={[styles.iconChoice, icone === emoji && { borderColor: colors.primary, borderWidth: 2 }]}
+              key={name}
+              onPress={() => setIcone(name)}
+              style={[styles.iconChoice, icone === name && { borderColor: couleur, borderWidth: 2 }]}
               accessibilityRole="radio"
-              accessibilityState={{ selected: icone === emoji }}
-              accessibilityLabel={`Icône ${emoji}`}
+              accessibilityState={{ selected: icone === name }}
+              accessibilityLabel={`Icône ${index + 1}`}
             >
-              <Text style={styles.iconChoiceText}>{emoji}</Text>
+              <Ionicons name={name} size={22} color={icone === name ? couleur : colors.text} />
             </Pressable>
           ))}
         </View>
@@ -216,8 +216,6 @@ const createStyles = (c: Palette) =>
     center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.background },
     content: { padding: 20, gap: 10, paddingBottom: 40 },
     preview: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 6 },
-    previewIcon: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
-    previewEmoji: { fontSize: 26 },
     previewName: { flex: 1, color: c.text, fontSize: 20, fontWeight: "700" },
     label: { color: c.textMuted, fontSize: 14, fontWeight: "600", marginTop: 8 },
     input: {
@@ -241,7 +239,6 @@ const createStyles = (c: Palette) =>
       alignItems: "center",
       justifyContent: "center",
     },
-    iconChoiceText: { fontSize: 22 },
     colorChoice: { width: 40, height: 40, borderRadius: 20, borderWidth: 0, borderColor: "transparent" },
     switchRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 12 },
     switchText: { flex: 1, gap: 2 },

@@ -6,6 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 
+import CategoryIcon from "@/components/CategoryIcon";
 import Chip from "@/components/Chip";
 import { type Palette, useColors } from "@/constants/theme";
 import { getCategories } from "@/db/categories";
@@ -66,9 +67,7 @@ export default function CategoriesScreen() {
               category.budget !== null ? `, budget ${formatAmount(category.budget)}` : ""
             }`}
           >
-            <View style={[styles.icon, { backgroundColor: category.couleur }]}>
-              <Text style={styles.iconText}>{category.icone}</Text>
-            </View>
+            <CategoryIcon icon={category.icone} color={category.couleur} size={38} />
             <View style={styles.rowMain}>
               <Text style={[styles.name, category.masquee && styles.hidden]}>{category.nom}</Text>
               {(category.masquee || category.budget !== null) && (
@@ -89,7 +88,7 @@ export default function CategoriesScreen() {
         onPress={() => router.push({ pathname: "/category/[id]", params: { id: "new", type } })}
         accessibilityRole="button"
       >
-        <Text style={styles.buttonText}>＋ Nouvelle catégorie</Text>
+        <Text style={styles.buttonText}>Nouvelle catégorie</Text>
       </Pressable>
     </ScrollView>
   );
@@ -104,8 +103,6 @@ const createStyles = (c: Palette) =>
     error: { color: c.danger },
     panel: { backgroundColor: c.surface, borderRadius: 14, paddingVertical: 4 },
     row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 10, minHeight: 56 },
-    icon: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
-    iconText: { fontSize: 19 },
     rowMain: { flex: 1, gap: 2 },
     name: { color: c.text, fontSize: 16, fontWeight: "600" },
     hidden: { color: c.textMuted, textDecorationLine: "line-through" },

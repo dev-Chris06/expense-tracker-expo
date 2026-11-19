@@ -69,9 +69,22 @@ export async function getTransactionById(id: number): Promise<Transaction | null
   return getDatabase().getFirstAsync<Transaction>(`${SELECT_TRANSACTION} WHERE t.id = ?`, id);
 }
 
-/** L'opération la plus récente, ou null s'il n'y en a aucune. */
-export async function getLatestTransaction(): Promise<Transaction | null> {
-  return getDatabase().getFirstAsync<Transaction>(`${SELECT_TRANSACTION} ORDER BY t.date DESC, t.id DESC LIMIT 1`);
+/** Les `limit` opérations les plus récentes. */
+export async function getRecentTransactions(limit = 5): Promise<Transaction[]> {
+  return getDatabase().getAllAsync<Transaction>(`${SELECT_TRANSACTION} ORDER BY t.date DESC, t.id DESC LIMIT ?`, limit);
+}
+
+/**
+ * Nombre d'utilisations de chaque catégorie depuis une date ISO : la saisie
+ * rapide affiche d'abord les catégories les plus utilisées.
+ */
+export async function getCategoryUsage(sinceISO: string): Promise<Map<number, number>> {
+  const rows = await getDatabase().getAllAsync<{ categorieId: number; count: number }>(
+    `SELECT categorie_id AS categorieId, COUNT(*) AS count FROM transactions
+     WHERE date >= ? GROUP BY categorie_id`,
+    sinceISO,
+  );
+  return new Map(rows.map((row) => [row.categorieId, row.count]));
 }
 
 /**

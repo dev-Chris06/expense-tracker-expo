@@ -19,3 +19,13 @@ export function formatCount(count: number): string {
 export function formatSignedAmount(amount: number, type: "depense" | "revenu"): string {
   return `${type === "revenu" ? "+" : "−"}\u00a0${formatAmount(amount)}`;
 }
+
+/** Format court des écrans : 1500 → "1 500 F" (valeur absolue). */
+export function formatShort(amount: number): string {
+  return `${String(Math.round(Math.abs(amount))).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F`;
+}
+
+/** Solde au format court, signé : "+42 500 F", "−3 000 F", "0 F". */
+export function formatNet(amount: number): string {
+  return `${amount > 0 ? "+" : amount < 0 ? "−" : ""}${formatShort(amount)}`;
+}

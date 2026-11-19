@@ -6,6 +6,7 @@
  * version de l'app est correctement convertie.
  */
 import { migrate } from "../db/database";
+import { CATEGORY_ICONS } from "../constants/categories";
 import { DATABASE_VERSION, MIGRATIONS } from "../db/schema";
 
 jest.mock("expo-sqlite", () => ({}));
@@ -110,6 +111,34 @@ describe("database migrations", () => {
       n: 9,
       total: 4500,
     });
+  });
+
+  it("replaces category emojis with vector icon names (v4)", () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec(MIGRATIONS[0]);
+    db.exec(MIGRATIONS[1]);
+    db.exec(MIGRATIONS[2]);
+    db.exec("PRAGMA user_version = 3");
+    db.exec("INSERT INTO categories (nom, type, couleur, icone) VALUES ('Moto', 'depense', '#000000', '🏍️')");
+    db.exec("INSERT INTO categories (nom, type, couleur, icone) VALUES ('Bizarre', 'depense', '#000000', '🦄')");
+
+    migrate(adapter(db));
+
+    const icons = Object.fromEntries(
+      (db.prepare("SELECT nom, icone FROM categories").all() as { nom: string; icone: string }[]).map((r) => [
+        r.nom,
+        r.icone,
+      ]),
+    );
+    expect(icons).toMatchObject({
+      Nourriture: "restaurant-outline",
+      Transport: "car-outline",
+      Salaire: "cash-outline",
+      Moto: "bicycle-outline",
+      Bizarre: "pricetag-outline",
+    });
+    // Toutes les icônes en base font partie des choix proposés.
+    for (const icon of Object.values(icons)) expect(CATEGORY_ICONS).toContain(icon);
   });
 
   it("is idempotent and keeps rejecting invalid rows", () => {

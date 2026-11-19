@@ -3,6 +3,7 @@
   "main": "index.ts",
   "version": "1.0.0",
   "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
     "@react-native-community/datetimepicker": "9.2.1",
     "expo": "^58.0.0",
     "expo-constants": "~58.0.13",
