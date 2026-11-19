@@ -232,7 +232,8 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
             numberOfLines={1}
             adjustsFontSizeToFit
           >
-            {type === "revenu" ? "+" : "−"}
+            {/* Pas de signe tant qu'aucun montant n'est tapé (« 0 F », pas « −0 F »). */}
+            {amount === "" ? "" : type === "revenu" ? "+" : "−"}
             {amountLabel}
             <Text style={styles.amountUnit}> F</Text>
           </Text>
@@ -284,8 +285,8 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
                     accessibilityState={{ selected }}
                     accessibilityLabel={category.nom}
                   >
-                    <CategoryIcon icon={category.icone} color={category.couleur} size={28} />
-                    <Text style={styles.categoryText} numberOfLines={1}>
+                    <CategoryIcon icon={category.icone} color={category.couleur} size={compact ? 26 : 30} />
+                    <Text style={styles.categoryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                       {category.nom}
                     </Text>
                   </Pressable>
@@ -404,13 +405,15 @@ const createStyles = (c: Palette, compact: boolean) =>
     labelHint: { color: c.textMuted, fontWeight: "400" },
     grid: { gap: 8 },
     gridRow: { flexDirection: "row", gap: 8 },
+    // Icône au-dessus du nom : toute la largeur de la case reste pour le texte.
     category: {
       flex: 1,
-      minHeight: 46,
-      flexDirection: "row",
+      minHeight: compact ? 58 : 64,
       alignItems: "center",
-      gap: 8,
-      paddingHorizontal: 8,
+      justifyContent: "center",
+      gap: 4,
+      paddingHorizontal: 4,
+      paddingVertical: 6,
       borderRadius: 12,
       borderWidth: 1.5,
       borderColor: c.border,
@@ -419,14 +422,14 @@ const createStyles = (c: Palette, compact: boolean) =>
     categoryPlaceholder: { flex: 1 },
     newCategory: { borderStyle: "dashed", backgroundColor: c.surfaceMuted },
     newIcon: {
-      width: 28,
-      height: 28,
+      width: compact ? 26 : 30,
+      height: compact ? 26 : 30,
       borderRadius: 8,
       backgroundColor: c.surface,
       alignItems: "center",
       justifyContent: "center",
     },
-    categoryText: { flex: 1, color: c.text, fontSize: 13, fontWeight: "600" },
+    categoryText: { color: c.text, fontSize: 13, fontWeight: "600", textAlign: "center" },
     moreButton: { alignSelf: "center", paddingVertical: 8, paddingHorizontal: 12 },
     moreText: { color: c.link, fontSize: 14, fontWeight: "600" },
     chips: { flexDirection: "row", gap: 8 },
