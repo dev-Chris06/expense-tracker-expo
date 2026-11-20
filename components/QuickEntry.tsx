@@ -476,8 +476,11 @@ const createStyles = (c: Palette, compact: boolean) =>
     categoryText: { color: c.text, fontSize: 13, fontWeight: "600", textAlign: "center" },
     moreCategory: { backgroundColor: c.surfaceMuted },
     chips: { flexDirection: "row", gap: 8 },
+    // Largeur selon le texte : « Note » cède la place à « Chaque mois ».
     chip: {
-      flex: 1,
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: "auto",
       minHeight: 40,
       flexDirection: "row",
       alignItems: "center",
