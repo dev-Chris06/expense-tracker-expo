@@ -1,4 +1,4 @@
-import { findCurrency } from "../constants/currencies";
+import { CURRENCIES, countryName, currencyForRegion, findCurrency } from "../constants/currencies";
 import { BACKUP_APP, parseBackup } from "../utils/backup";
 import { budgetSuggestions, roundNice } from "../utils/budget";
 import { buildCsv, csvField } from "../utils/csv";
@@ -6,6 +6,7 @@ import { getCurrency, setCurrentCurrency } from "../utils/currency";
 import { formatAmount, formatMajor, formatNet } from "../utils/formatters";
 import { formatDigits, keypadKeys, pressKey, toKeypadText } from "../utils/keypad";
 import { dueDates, occurrenceDate, recurrenceLabel, resumeLastMonth } from "../utils/recurrence";
+import { currencyMatches } from "../utils/search";
 import { parseAmount } from "../utils/validation";
 import type { Transaction } from "../types/transaction";
 
@@ -34,6 +35,40 @@ describe("currencies", () => {
   it("follows the current currency", () => {
     setCurrentCurrency("EUR");
     expect(formatAmount(99)).toBe(nb("0,99 €"));
+  });
+});
+
+describe("currency list", () => {
+  it("covers every currency in use, including those offered in 1.4.0", () => {
+    expect(CURRENCIES.length).toBeGreaterThan(140);
+    for (const code of ["XOF", "XAF", "EUR", "USD", "CAD", "GBP", "CHF", "NGN", "GHS", "GNF", "CDF", "MAD", "DZD", "TND", "MGA", "HTG"]) {
+      expect(findCurrency(code).code).toBe(code);
+    }
+    expect(new Set(CURRENCIES.map((c) => c.code)).size).toBe(CURRENCIES.length);
+  });
+
+  it("finds the currency of a country", () => {
+    expect(currencyForRegion("BJ")?.code).toBe("XOF");
+    expect(currencyForRegion("cm")?.code).toBe("XAF");
+    expect(currencyForRegion("FR")?.code).toBe("EUR");
+    expect(currencyForRegion("NG")?.code).toBe("NGN");
+    expect(currencyForRegion("ZZ")).toBeNull();
+    expect(countryName("BJ")).toBe("Bénin");
+  });
+
+  it("searches by country, name or code, ignoring accents and case", () => {
+    const codes = (q: string) => CURRENCIES.filter((c) => currencyMatches(c, q)).map((c) => c.code);
+    expect(codes("benin")).toEqual(["XOF"]);
+    expect(codes("Côte d'Ivoire".replace("'", "’"))).toContain("XOF");
+    expect(codes("naira")).toEqual(["NGN"]);
+    expect(codes("eur")).toContain("EUR");
+    expect(codes("dollar").length).toBeGreaterThan(5);
+  });
+
+  it("keeps the short symbols people use", () => {
+    expect(findCurrency("XOF").symbole).toBe("F");
+    expect(findCurrency("XAF").decimales).toBe(0);
+    expect(findCurrency("EUR").symbole).toBe("€");
   });
 });
 

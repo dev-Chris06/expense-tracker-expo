@@ -12,17 +12,17 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Chip from "@/components/Chip";
 import { confirmDeleteTransaction } from "@/components/confirmDelete";
 import MonthNav from "@/components/MonthNav";
+import SortSheet from "@/components/SortSheet";
 import TransactionRow from "@/components/TransactionRow";
 import { type Palette, useColors } from "@/constants/theme";
 import { getCategories } from "@/db/categories";
 import { deleteTransaction, getAllTransactions } from "@/db/transactions";
 import type { Category, Transaction, TransactionType } from "@/types/transaction";
 import { formatCount, formatNet } from "@/utils/formatters";
-import { dayLabel, groupByDay, nextSortOrder, SORT_LABELS, type SortOrder, sortTransactions } from "@/utils/grouping";
+import { dayLabel, groupByDay, type SortOrder, sortTransactions } from "@/utils/grouping";
 import { monthKey } from "@/utils/months";
 import { matchesQuery } from "@/utils/search";
 import { useCurrency } from "@/utils/currency";
-
 
 export default function ListScreen() {
   const router = useRouter();
@@ -38,6 +38,7 @@ export default function ListScreen() {
   const [type, setType] = useState<TransactionType | null>(null);
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [sort, setSort] = useState<SortOrder>("recent");
+  const [sortOpen, setSortOpen] = useState(false);
   const [error, setError] = useState("");
 
   const refresh = useCallback(() => {
@@ -105,14 +106,15 @@ export default function ListScreen() {
         <Text style={styles.title} accessibilityRole="header">
           Opérations
         </Text>
+        {/* Mis en couleur quand un autre tri que le tri habituel est actif. */}
         <Pressable
-          onPress={() => setSort(nextSortOrder(sort))}
-          style={styles.sortButton}
+          onPress={() => setSortOpen(true)}
+          style={[styles.sortButton, sort !== "recent" && { borderColor: colors.primary }]}
           accessibilityRole="button"
-          accessibilityLabel={`Tri : ${SORT_LABELS[sort]}. Changer`}
+          accessibilityLabel="Trier les opérations"
         >
-          <Ionicons name="swap-vertical-outline" size={16} color={colors.text} />
-          <Text style={styles.sortText}>{SORT_LABELS[sort]}</Text>
+          <Ionicons name="swap-vertical-outline" size={16} color={sort !== "recent" ? colors.primary : colors.text} />
+          <Text style={[styles.sortText, sort !== "recent" && { color: colors.primary }]}>Trier</Text>
         </Pressable>
       </View>
 
@@ -210,6 +212,7 @@ export default function ListScreen() {
           filtered.length > 0 ? <Text style={styles.hint}>Appui long sur une opération pour la supprimer.</Text> : undefined
         }
       />
+      <SortSheet visible={sortOpen} value={sort} onChange={setSort} onClose={() => setSortOpen(false)} />
     </SafeAreaView>
   );
 }

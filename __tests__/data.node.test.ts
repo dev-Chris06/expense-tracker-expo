@@ -89,8 +89,8 @@ describe("changeCurrency", () => {
       { montant: 13 },
       { montant: 1 },
     ]);
-    // Retour au franc CFA = réglage par défaut : la clé est retirée.
-    expect(rows("SELECT * FROM settings WHERE cle = 'devise'")).toEqual([]);
+    // Choix explicite : enregistré, même pour la devise par défaut.
+    expect(rows("SELECT valeur FROM settings WHERE cle = 'devise'")).toEqual([{ valeur: "XOF" }]);
   });
 
   it("does not touch amounts between currencies with the same decimals", () => {

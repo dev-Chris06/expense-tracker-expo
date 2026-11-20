@@ -6,16 +6,22 @@ import { todayISO, toISODate } from "@/utils/dateHelpers";
 
 export type SortOrder = "recent" | "oldest" | "amount";
 
-export const SORT_LABELS: Record<SortOrder, string> = {
-  recent: "Plus récentes",
-  oldest: "Plus anciennes",
-  amount: "Plus gros montants",
-};
-
-/** Ordre suivant quand on touche le bouton de tri. */
-export function nextSortOrder(order: SortOrder): SortOrder {
-  return order === "recent" ? "oldest" : order === "oldest" ? "amount" : "recent";
-}
+/** Les trois tris proposés, dans l'ordre d'affichage. */
+export const SORT_OPTIONS: readonly {
+  value: SortOrder;
+  label: string;
+  hint: string;
+  icon: "arrow-down" | "arrow-up" | "cash-outline";
+}[] = [
+  { value: "recent", label: "Date, récentes d’abord", hint: "Aujourd’hui en haut de la liste", icon: "arrow-down" },
+  { value: "oldest", label: "Date, anciennes d’abord", hint: "Le 1er du mois en haut de la liste", icon: "arrow-up" },
+  {
+    value: "amount",
+    label: "Montant, plus gros d’abord",
+    hint: "Pour voir où est parti l’argent",
+    icon: "cash-outline",
+  },
+];
 
 /** Copie triée ; à égalité, l'opération saisie en dernier passe devant. */
 export function sortTransactions(rows: readonly Transaction[], order: SortOrder): Transaction[] {

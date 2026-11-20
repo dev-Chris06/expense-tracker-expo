@@ -1,6 +1,6 @@
 import type { Transaction } from "../types/transaction";
 import { formatNet, formatShort } from "../utils/formatters";
-import { dayLabel, formatShortDate, groupByDay, nextSortOrder, sortTransactions } from "../utils/grouping";
+import { dayLabel, formatShortDate, groupByDay, SORT_OPTIONS, sortTransactions } from "../utils/grouping";
 import { formatDigits, pressKey } from "../utils/keypad";
 import { changePercent, daysForAverage, formatShortMonth, greeting, lastMonths } from "../utils/months";
 
@@ -56,8 +56,7 @@ describe("grouping", () => {
     expect(sortTransactions(rows, "recent").map((t) => t.id)).toEqual([3, 2, 4, 1]);
     expect(sortTransactions(rows, "oldest").map((t) => t.id)).toEqual([1, 4, 2, 3]);
     expect(sortTransactions(rows, "amount").map((t) => t.id)).toEqual([3, 4, 1, 2]);
-    expect(nextSortOrder("recent")).toBe("oldest");
-    expect(nextSortOrder("amount")).toBe("recent");
+    expect(SORT_OPTIONS.map((o) => o.value)).toEqual(["recent", "oldest", "amount"]);
   });
 
   it("groups by day with the net total of each day", () => {

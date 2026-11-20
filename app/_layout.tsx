@@ -25,13 +25,26 @@ import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "react-native";
 
 import { applyThemePreference, darkColors, lightColors } from "@/constants/theme";
+import { findCurrency } from "@/constants/currencies";
+import { countTransactions } from "@/db/backup";
 import { applyDueRecurrences } from "@/db/recurrences";
-import { getCurrencyCode, getThemePreference } from "@/db/settings";
+import { changeCurrency, getCurrencyCode, getThemePreference, hasCurrencySetting } from "@/db/settings";
 import { setCurrentCurrency } from "@/utils/currency";
+import { detectLocalCurrency } from "@/utils/localCurrency";
 
 /**
- * Avant le premier affichage : thème et devise choisis dans les réglages,
- * puis opérations récurrentes arrivées à échéance.
+ * Premier lancement (aucune devise choisie, aucune opération) : prend la
+ * devise du pays réglé dans le téléphone. Une app déjà utilisée garde sa
+ * devise : on ne change jamais la signification de montants existants.
+ */
+function chooseFirstCurrency(): void {
+  if (hasCurrencySetting() || countTransactions() > 0) return;
+  changeCurrency(findCurrency(null), detectLocalCurrency()?.currency ?? findCurrency(null));
+}
+
+/**
+ * Avant le premier affichage : thème et devise (celle du pays au premier
+ * lancement), puis opérations récurrentes arrivées à échéance.
  */
 function applySavedSettings(): boolean {
   // Chaque étape est indépendante : si la base est illisible, on garde le
@@ -39,6 +52,7 @@ function applySavedSettings(): boolean {
   // leur erreur de chargement.
   for (const step of [
     () => applyThemePreference(getThemePreference()),
+    chooseFirstCurrency,
     () => setCurrentCurrency(getCurrencyCode()),
     () => applyDueRecurrences(),
   ]) {

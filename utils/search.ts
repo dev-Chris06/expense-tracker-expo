@@ -34,3 +34,13 @@ export function matchesQuery(transaction: Transaction, query: string): boolean {
   ];
   return fields.some((field) => normalizeForSearch(field).includes(needle));
 }
+
+/** Devise correspondant à la recherche : nom, code ou pays (« benin » → franc CFA). */
+export function currencyMatches(
+  currency: { code: string; nom: string; pays: readonly string[] },
+  query: string,
+): boolean {
+  const needle = normalizeForSearch(query);
+  if (needle === "") return true;
+  return [currency.nom, currency.code, ...currency.pays].some((field) => normalizeForSearch(field).includes(needle));
+}

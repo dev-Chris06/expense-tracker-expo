@@ -14,14 +14,16 @@ Née d'un comparatif Expo vs Flutter : la version Flutter (dépôt
 - **Accueil** : solde du mois (revenus − dépenses), suivi des budgets
   (bouton « Définir mon budget du mois » s'il n'y en a pas), 5 dernières
   opérations.
-- **Devise au choix** : franc CFA par défaut, euro, dollar, naira, cedi,
-  dirham… (une devise pour toute l'app). Les montants sont stockés en
+- **Devise au choix** : toutes les devises en usage dans le monde (154),
+  recherche par pays ou par nom (« Bénin » → franc CFA) ; au premier
+  lancement, celle du pays réglé dans le téléphone (une devise pour toute
+  l'app). Les montants sont stockés en
   entiers dans la plus petite unité de la devise ; changer de devise garde
   les chiffres tapés (pas de taux de change).
 - **Saisie rapide** : pavé numérique intégré (touche « 000 », ou « , » pour
   les devises à centimes ; appui long sur ⌫ pour tout effacer), catégories
   les plus utilisées en premier, date « aujourd'hui » par défaut, note
-  facultative (280 car.), option « Chaque mois ». La case « ＋ Nouvelle »
+  facultative (280 car.), interrupteur « Répéter chaque mois ». La case « ＋ Nouvelle »
   crée une catégorie et la sélectionne aussitôt. Le même écran sert à
   modifier ou supprimer une opération.
 - **Opérations récurrentes** : loyer, forfait, salaire… ajoutés tout seuls
@@ -38,7 +40,8 @@ Née d'un comparatif Expo vs Flutter : la version Flutter (dépôt
   orange à 80 %, rouges à 100 %, alerte quand une dépense franchit un seuil.
 - **Opérations** : groupées par jour avec le total du jour, navigation par
   mois, recherche dans tous les mois (sans accents ni casse), filtres
-  dépenses / revenus puis par catégorie, tri (récentes, anciennes, montant),
+  dépenses / revenus puis par catégorie, bouton « Trier » (date récentes ou
+  anciennes d'abord, montant le plus gros d'abord),
   appui long pour supprimer.
 - **Statistiques** : dépenses, revenus et solde d'un mois (‹ ›), moyenne
   par jour, évolution par rapport au mois précédent, répartition par
@@ -83,6 +86,19 @@ npm run lint
 npm run typecheck
 npm test
 ```
+
+## Devises
+
+`constants/currencyData.ts` est généré (ne pas l'éditer à la main) à partir
+du paquet `country-to-currency` (pays → devise) et des données Unicode CLDR
+de Node.js (noms français, symboles, décimales) :
+
+```bash
+node scripts/generate-currencies.mjs
+```
+
+Les symboles courts habituels (F pour le franc CFA, DH, DA…) sont fixés dans
+le script.
 
 ## Base de données
 

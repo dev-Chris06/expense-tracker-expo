@@ -1,7 +1,7 @@
 {
   "name": "depenses-perso",
   "main": "index.ts",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@react-native-community/datetimepicker": "9.2.1",
@@ -11,6 +11,7 @@
     "expo-file-system": "~58.0.14",
     "expo-font": "~58.0.10",
     "expo-linking": "~58.0.15",
+    "expo-localization": "~58.0.5",
     "expo-router": "~58.0.29",
     "expo-sharing": "~58.0.23",
     "expo-splash-screen": "~58.0.11",
@@ -28,6 +29,7 @@
     "@react-native/jest-preset": "^0.88.0",
     "@types/jest": "30.0.0",
     "@types/react": "~19.3.0",
+    "country-to-currency": "^3.0.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
     "jest": "~30.5.2",

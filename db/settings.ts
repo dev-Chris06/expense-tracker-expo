@@ -49,6 +49,11 @@ export function setMonthlyBudget(value: number | null): void {
   setSetting(BUDGET_KEY, value === null ? null : String(value));
 }
 
+/** La devise a-t-elle déjà été choisie (ou fixée au premier lancement) ? */
+export function hasCurrencySetting(): boolean {
+  return getSetting(CURRENCY_KEY) !== null;
+}
+
 /** Code de la devise choisie (franc CFA par défaut). */
 export function getCurrencyCode(): string {
   return findCurrency(getSetting(CURRENCY_KEY)).code;
@@ -74,6 +79,8 @@ export function changeCurrency(from: Currency, to: Currency): void {
         BUDGET_KEY,
       );
     }
-    setSetting(CURRENCY_KEY, to.code === findCurrency(null).code ? null : to.code);
+    // Toujours enregistrée, même pour le franc CFA : un choix explicite ne
+    // doit jamais être remplacé par la détection du premier lancement.
+    setSetting(CURRENCY_KEY, to.code);
   });
 }

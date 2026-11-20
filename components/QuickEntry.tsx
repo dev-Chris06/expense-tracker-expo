@@ -14,6 +14,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   useWindowDimensions,
@@ -233,7 +234,8 @@ export default function QuickEntry({
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.amountBox} accessible accessibilityLabel={`Montant : ${amountLabel} ${currency.nom}`}>
-          <Text style={styles.amountCaption}>{initialTransaction ? "Modifier le montant" : "Montant"}</Text>
+          {/* En ajout, le gros chiffre parle de lui-même : la place va à la grille. */}
+          {initialTransaction && <Text style={styles.amountCaption}>Modifier le montant</Text>}
           <Text
             style={[styles.amount, type === "revenu" && { color: colors.success }]}
             numberOfLines={1}
@@ -284,25 +286,34 @@ export default function QuickEntry({
             <Ionicons name="create-outline" size={16} color={colors.text} />
             <Text style={styles.chipText}>{note.trim() ? "Note ✓" : "Note"}</Text>
           </Pressable>
-          {allowRepeat && (
-            <Pressable
-              onPress={() => setRepeat((v) => !v)}
-              style={[styles.chip, repeat && { borderColor: accent, backgroundColor: `${accent}1A` }]}
-              accessibilityRole="switch"
-              accessibilityState={{ checked: repeat }}
-              accessibilityLabel="Répéter chaque mois"
-            >
-              <Ionicons name="repeat" size={16} color={repeat ? accent : colors.text} />
-              <Text style={[styles.chipText, repeat && { color: accent }]} numberOfLines={1}>
-                Chaque mois
-              </Text>
-            </Pressable>
-          )}
         </View>
-        {allowRepeat && repeat && isValidISODate(date) && (
-          <Text style={styles.repeatHint}>
-            {recurrenceLabel(Number(date.slice(8)))}, ajoutée automatiquement. À gérer dans Réglages.
-          </Text>
+        {/* Sur sa propre ligne : le texte reste entier quelle que soit la largeur. */}
+        {allowRepeat && (
+          <Pressable
+            onPress={() => setRepeat((v) => !v)}
+            style={styles.repeatRow}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: repeat }}
+            accessibilityLabel="Répéter chaque mois"
+          >
+            <Ionicons name="repeat" size={18} color={repeat ? accent : colors.textMuted} />
+            <View style={styles.flex}>
+              <Text style={styles.repeatTitle}>Répéter chaque mois</Text>
+              {repeat && isValidISODate(date) && (
+                <Text style={styles.repeatHint} numberOfLines={1}>
+                  {recurrenceLabel(Number(date.slice(8)))}, ajoutée toute seule
+                </Text>
+              )}
+            </View>
+            <Switch
+              value={repeat}
+              onValueChange={setRepeat}
+              trackColor={{ true: accent, false: colors.border }}
+              thumbColor={colors.surface}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+          </Pressable>
         )}
         {datePickerVisible && Platform.OS !== "web" && (
           <DateTimePicker
@@ -328,9 +339,7 @@ export default function QuickEntry({
           />
         )}
 
-        <Text style={styles.label}>
-          Catégorie <Text style={styles.labelHint}>· les plus utilisées d’abord</Text>
-        </Text>
+        <Text style={styles.label}>Catégorie</Text>
         <View style={styles.grid} accessibilityRole="radiogroup">
           {chunk<GridCell<Category>>(cells, 3).map((row, index) => (
             <View key={index} style={styles.gridRow}>
@@ -440,13 +449,12 @@ const createStyles = (c: Palette, compact: boolean) =>
     segmentText: { color: c.textMuted, fontSize: 14, fontWeight: "700" },
     scroll: { flex: 1 },
     scrollContent: { paddingHorizontal: 16, paddingBottom: 12, gap: 10 },
-    amountBox: { alignItems: "center", paddingTop: compact ? 8 : 18, paddingBottom: compact ? 2 : 8 },
+    amountBox: { alignItems: "center", paddingTop: compact ? 4 : 10, paddingBottom: compact ? 0 : 4 },
     amountCaption: { color: c.textMuted, fontSize: 13, fontWeight: "500" },
     amount: { color: c.text, fontSize: compact ? 38 : 46, fontWeight: "800", fontVariant: ["tabular-nums"] },
     amountUnit: { color: c.textMuted, fontSize: compact ? 20 : 24, fontWeight: "700" },
     error: { color: c.danger, fontSize: 14, textAlign: "center" },
     label: { color: c.text, fontSize: 13, fontWeight: "600" },
-    labelHint: { color: c.textMuted, fontWeight: "400" },
     grid: { gap: 8 },
     gridRow: { flexDirection: "row", gap: 8 },
     // Icône au-dessus du nom : toute la largeur de la case reste pour le texte.
@@ -494,7 +502,10 @@ const createStyles = (c: Palette, compact: boolean) =>
     },
     chipInput: { color: c.text, fontSize: 14 },
     chipText: { color: c.text, fontSize: 13, fontWeight: "600", flexShrink: 1 },
-    repeatHint: { color: c.textMuted, fontSize: 12, textAlign: "center" },
+    flex: { flex: 1 },
+    repeatRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 36, paddingLeft: 4 },
+    repeatTitle: { color: c.text, fontSize: 14, fontWeight: "600" },
+    repeatHint: { color: c.textMuted, fontSize: 12 },
     note: {
       borderWidth: 1,
       borderColor: c.border,
