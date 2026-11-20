@@ -397,7 +397,7 @@ export default function QuickEntry({
                     accessibilityState={{ selected }}
                     accessibilityLabel={category.nom}
                   >
-                    <CategoryIcon icon={category.icone} color={category.couleur} size={compact ? 26 : 30} />
+                    <CategoryIcon icon={category.icone} color={category.couleur} size={compact ? 24 : 28} />
                     <Text style={styles.categoryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                       {category.nom}
                     </Text>
@@ -448,24 +448,24 @@ const createStyles = (c: Palette, compact: boolean) =>
     },
     segmentText: { color: c.textMuted, fontSize: 14, fontWeight: "700" },
     scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 16, paddingBottom: 12, gap: 10 },
+    scrollContent: { paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
     amountBox: { alignItems: "center", paddingTop: compact ? 4 : 10, paddingBottom: compact ? 0 : 4 },
     amountCaption: { color: c.textMuted, fontSize: 13, fontWeight: "500" },
     amount: { color: c.text, fontSize: compact ? 38 : 46, fontWeight: "800", fontVariant: ["tabular-nums"] },
     amountUnit: { color: c.textMuted, fontSize: compact ? 20 : 24, fontWeight: "700" },
     error: { color: c.danger, fontSize: 14, textAlign: "center" },
     label: { color: c.text, fontSize: 13, fontWeight: "600" },
-    grid: { gap: 8 },
-    gridRow: { flexDirection: "row", gap: 8 },
+    grid: { gap: 6 },
+    gridRow: { flexDirection: "row", gap: 6 },
     // Icône au-dessus du nom : toute la largeur de la case reste pour le texte.
     category: {
       flex: 1,
-      minHeight: compact ? 58 : 64,
+      minHeight: compact ? 52 : 58,
       alignItems: "center",
       justifyContent: "center",
       gap: 4,
       paddingHorizontal: 4,
-      paddingVertical: 6,
+      paddingVertical: 5,
       borderRadius: 12,
       borderWidth: 1.5,
       borderColor: c.border,
@@ -474,8 +474,8 @@ const createStyles = (c: Palette, compact: boolean) =>
     categoryPlaceholder: { flex: 1 },
     newCategory: { borderStyle: "dashed", backgroundColor: c.surfaceMuted },
     newIcon: {
-      width: compact ? 26 : 30,
-      height: compact ? 26 : 30,
+      width: compact ? 24 : 28,
+      height: compact ? 24 : 28,
       borderRadius: 8,
       backgroundColor: c.surface,
       alignItems: "center",
