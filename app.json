@@ -2,7 +2,7 @@
   "expo": {
     "name": "Dépenses Perso",
     "slug": "expense-tracker",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "expensetracker",
@@ -13,7 +13,7 @@
     },
     "android": {
       "package": "com.devchris06.expensetracker.expo",
-      "versionCode": 11,
+      "versionCode": 12,
       "adaptiveIcon": {
         "backgroundColor": "#175CD3",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

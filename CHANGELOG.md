@@ -4,6 +4,14 @@ Chaque section est reprise telle quelle comme description de la release
 GitHub correspondante (voir `.github/workflows/build-apk.yml`). Toutes les
 versions restent téléchargeables sur la page Releases du dépôt.
 
+## 1.5.1 — 20/11/2026
+
+- Accueil : « Aujourd’hui · 2 opérations · −1 500 F » remplace « Bonjour /
+  Bonsoir » (ce qui est déjà noté dans la journée, d'un coup d'œil).
+- Devise : la barre de recherche reste en haut quand on fait défiler.
+- Réglages : thème « Système / Clair / Sombre » avec icônes ; une icône sur
+  chaque ligne ; « Exporter vers Excel » au lieu de « Exporter en CSV ».
+
 ## 1.5.0 — 20/11/2026
 
 - **Rappel du soir** : « Tu as fait le point de ta journée ? », à 20 h par

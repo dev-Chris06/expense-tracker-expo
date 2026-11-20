@@ -33,17 +33,20 @@ import { syncRemindersQuietly } from "@/utils/reminders";
 
 type FileAction = "restore" | "csv";
 
-const THEMES: { value: ThemePreference; label: string }[] = [
-  { value: "system", label: "Comme le tél." },
-  { value: "light", label: "Clair" },
-  { value: "dark", label: "Sombre" },
+// Icône + texte : le symbole se reconnaît d'un coup d'œil, le texte lève
+// toute ambiguïté (« Système » seul en icône ne se comprendrait pas).
+const THEMES: { value: ThemePreference; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { value: "system", label: "Système", icon: "phone-portrait-outline" },
+  { value: "light", label: "Clair", icon: "sunny-outline" },
+  { value: "dark", label: "Sombre", icon: "moon-outline" },
 ];
 
 interface LinkRowProps {
   title: string;
   hint: string;
   onPress: () => void;
-  icon?: keyof typeof Ionicons.glyphMap;
+  /** Toutes les lignes ont une icône : la liste se parcourt d'un coup d'œil. */
+  icon: keyof typeof Ionicons.glyphMap;
   busy?: boolean;
 }
 
@@ -59,7 +62,7 @@ function LinkRow({ title, hint, onPress, icon, busy }: LinkRowProps) {
       accessibilityRole="button"
       accessibilityState={{ busy }}
     >
-      {icon && <Ionicons name={icon} size={22} color={colors.primary} />}
+      <Ionicons name={icon} size={22} color={colors.primary} />
       <View style={styles.flex}>
         <Text style={styles.rowTitle}>{title}</Text>
         <Text style={styles.hint}>{hint}</Text>
@@ -166,7 +169,10 @@ export default function SettingsScreen() {
 
         <Text style={styles.section}>APPARENCE</Text>
         <View style={styles.card}>
-          <Text style={styles.rowTitle}>Thème</Text>
+          <View style={styles.cardTitle}>
+            <Ionicons name="contrast-outline" size={22} color={colors.primary} />
+            <Text style={styles.rowTitle}>Thème</Text>
+          </View>
           <View style={styles.segments} accessibilityRole="radiogroup">
             {THEMES.map((t) => {
               const selected = theme === t.value;
@@ -178,6 +184,7 @@ export default function SettingsScreen() {
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
                 >
+                  <Ionicons name={t.icon} size={16} color={selected ? colors.text : colors.textMuted} />
                   <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{t.label}</Text>
                 </Pressable>
               );
@@ -187,12 +194,19 @@ export default function SettingsScreen() {
 
         <Text style={styles.section}>ARGENT</Text>
         <LinkRow
+          icon="wallet-outline"
           title="Budget du mois"
           hint={budget === null ? "Aucun budget : touche pour en définir un." : `${formatAmount(budget)} par mois`}
           onPress={() => router.push("/budget")}
         />
-        <LinkRow title="Devise" hint={`${currency.nom} · ${currency.symbole}`} onPress={() => router.push("/currency")} />
         <LinkRow
+          icon="cash-outline"
+          title="Devise"
+          hint={`${currency.nom} · ${currency.symbole}`}
+          onPress={() => router.push("/currency")}
+        />
+        <LinkRow
+          icon="repeat"
           title="Opérations récurrentes"
           hint={
             recurringCount > 0
@@ -202,6 +216,7 @@ export default function SettingsScreen() {
           onPress={() => router.push("/recurring")}
         />
         <LinkRow
+          icon="pricetags-outline"
           title="Catégories"
           hint="Ajouter, renommer, masquer, icônes, couleurs et budgets par catégorie."
           onPress={() => router.push("/categories")}
@@ -243,8 +258,8 @@ export default function SettingsScreen() {
         />
         <LinkRow
           icon="document-text-outline"
-          title="Exporter en CSV"
-          hint="Toutes tes opérations, pour Excel ou Google Sheets."
+          title="Exporter vers Excel"
+          hint="Toutes tes opérations dans un tableau, à ouvrir avec Excel, Google Sheets ou WPS."
           busy={busy === "csv"}
           onPress={() => runFileAction("csv", async () => void (await shareCsv()))}
         />
@@ -277,7 +292,16 @@ const createStyles = (c: Palette) =>
     rowTitle: { color: c.text, fontSize: 15, fontWeight: "600" },
     hint: { color: c.textMuted, fontSize: 13, lineHeight: 18 },
     segments: { flexDirection: "row", backgroundColor: c.surfaceMuted, borderRadius: 10, padding: 3 },
-    segment: { flex: 1, minHeight: 38, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+    segment: {
+      flex: 1,
+      minHeight: 38,
+      borderRadius: 8,
+      flexDirection: "row",
+      gap: 6,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    cardTitle: { flexDirection: "row", alignItems: "center", gap: 12 },
     segmentSelected: {
       backgroundColor: c.surface,
       elevation: 1,

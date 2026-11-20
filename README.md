@@ -37,7 +37,8 @@ Née d'un comparatif Expo vs Flutter : la version Flutter (dépôt
   choisi (les 5 dernières sont gardées), envoi d'une sauvegarde où l'on veut
   (Drive, WhatsApp…) avec rappel tous les 30 jours, restauration après
   vérification complète du fichier (tout ou rien), export CSV pour Excel /
-  Google Sheets (« ; », virgule décimale, dépenses en négatif). Les réglages
+  Google Sheets (« Exporter vers Excel » : « ; », virgule décimale, dépenses
+  en négatif). Les réglages
   préfixés `appareil_` (dossier de sauvegarde…) restent propres au téléphone.
 - **Catégories personnalisables** : création, renommage, icône vectorielle,
   couleur, masquage (les opérations passées sont conservées).

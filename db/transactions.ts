@@ -173,3 +173,15 @@ export async function hasTransactionOn(date: string): Promise<boolean> {
   );
   return (row?.n ?? 0) > 0;
 }
+
+/** Nombre d'opérations et solde (revenus − dépenses) d'un jour ISO. */
+export async function getDaySummary(date: string): Promise<{ count: number; net: number }> {
+  const row = await getDatabase().getFirstAsync<{ count: number; net: number }>(
+    `SELECT COUNT(*) AS count,
+            COALESCE(SUM(CASE WHEN c.type = 'revenu' THEN t.montant ELSE -t.montant END), 0) AS net
+     FROM transactions t JOIN categories c ON c.id = t.categorie_id
+     WHERE t.date = ?`,
+    date,
+  );
+  return { count: row?.count ?? 0, net: row?.net ?? 0 };
+}
