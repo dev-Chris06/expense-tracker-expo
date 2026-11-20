@@ -114,3 +114,30 @@ describe("category created from quick entry", () => {
     expect(takeCreatedCategory()).toBeNull();
   });
 });
+
+describe("buildCategoryGrid", () => {
+  const { buildCategoryGrid } = require("@/utils/categoryGrid") as typeof import("@/utils/categoryGrid");
+  const cats = (n: number) => Array.from({ length: n }, (_, i) => ({ id: i + 1 }));
+  const kinds = (cells: { kind: string }[]) => cells.map((c) => c.kind);
+
+  it("montre tout + Nouvelle quand ça tient en 9 cases", () => {
+    expect(kinds(buildCategoryGrid(cats(8), null, false))).toEqual([...Array(8).fill("category"), "new"]);
+  });
+
+  it("au-delà, 7 catégories + Plus + Nouvelle : jamais plus de 9 cases", () => {
+    const cells = buildCategoryGrid(cats(9), null, false);
+    expect(cells).toHaveLength(9);
+    expect(kinds(cells).slice(7)).toEqual(["more", "new"]);
+    expect(cells[7]).toEqual({ kind: "more", hidden: 2 });
+  });
+
+  it("garde visible la catégorie choisie même peu utilisée", () => {
+    const cells = buildCategoryGrid(cats(12), 11, false);
+    expect(cells[6]).toEqual({ kind: "category", category: { id: 11 } });
+  });
+
+  it("dépliée : toutes + Nouvelle + Moins", () => {
+    expect(kinds(buildCategoryGrid(cats(10), null, true)).slice(-2)).toEqual(["new", "less"]);
+    expect(buildCategoryGrid(cats(10), null, true)).toHaveLength(12);
+  });
+});

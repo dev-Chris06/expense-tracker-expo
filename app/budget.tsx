@@ -12,9 +12,10 @@ import Keypad from "@/components/Keypad";
 import { type Palette, useColors } from "@/constants/theme";
 import { getMonthlyBudget, setMonthlyBudget } from "@/db/settings";
 import { getMonthSummary } from "@/db/transactions";
+import { budgetPercent } from "@/utils/budget";
 import { formatShort } from "@/utils/formatters";
 import { formatDigits, pressKey } from "@/utils/keypad";
-import { formatMonthLabel, monthKey, percentOf } from "@/utils/months";
+import { formatMonthLabel, monthKey } from "@/utils/months";
 import { parseAmount } from "@/utils/validation";
 
 const SUGGESTIONS = [100_000, 150_000, 200_000];
@@ -94,7 +95,7 @@ export default function BudgetScreen() {
           </Text>
           <Text style={styles.spent}>
             Déjà dépensé en {formatMonthLabel(month).split(" ")[0].toLowerCase()} : {formatShort(spent)}
-            {value !== null ? ` · ${percentOf(spent, value)} %` : ""}
+            {value !== null ? ` · ${budgetPercent(spent, value)} %` : ""}
           </Text>
         </View>
 

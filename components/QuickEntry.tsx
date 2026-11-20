@@ -28,6 +28,7 @@ import { type Palette, useColors } from "@/constants/theme";
 import { getCategories } from "@/db/categories";
 import { getCategoryUsage } from "@/db/transactions";
 import type { Category, Transaction, TransactionInput, TransactionType } from "@/types/transaction";
+import { buildCategoryGrid, type GridCell } from "@/utils/categoryGrid";
 import { takeCreatedCategory } from "@/utils/createdCategory";
 import { isValidISODate, todayISO, toISODate } from "@/utils/dateHelpers";
 import { UserFacingError } from "@/utils/errors";
@@ -35,8 +36,6 @@ import { dayLabel } from "@/utils/grouping";
 import { formatDigits, type KeypadKey, pressKey } from "@/utils/keypad";
 import { validateTransactionInput } from "@/utils/validation";
 
-/** Nombre de catégories visibles avant « Toutes ». */
-const VISIBLE_CATEGORIES = 8;
 const USAGE_DAYS = 90;
 
 interface QuickEntryProps {
@@ -118,15 +117,7 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
     return ofType.sort((a, b) => (usage.get(b.id) ?? 0) - (usage.get(a.id) ?? 0) || a.position - b.position);
   }, [categories, type, usage, initialTransaction?.categorieId]);
 
-  const visible = useMemo(() => {
-    if (showAll || choices.length <= VISIBLE_CATEGORIES) return choices;
-    const first = choices.slice(0, VISIBLE_CATEGORIES);
-    const selected = choices.find((c) => c.id === categoryId);
-    // La catégorie choisie reste visible même si elle est peu utilisée.
-    if (selected && !first.includes(selected)) first[VISIBLE_CATEGORIES - 1] = selected;
-    return first;
-  }, [choices, showAll, categoryId]);
-  const hiddenCount = choices.length - visible.length;
+  const cells = useMemo(() => buildCategoryGrid(choices, categoryId, showAll), [choices, categoryId, showAll]);
 
   const changeType = (next: TransactionType) => {
     if (next === type) return;
@@ -177,6 +168,9 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
   const dateChip = isValidISODate(date) ? dayLabel(date).split(" · ")[0] : "Date";
   const accent = type === "revenu" ? colors.success : colors.primary;
   const amountLabel = formatDigits(amount);
+  // Grisé tant qu'il manque le montant ou la catégorie ; reste touchable
+  // pour expliquer ce qui manque.
+  const ready = Number(amount) > 0 && categoryId !== null;
 
   const segment = (value: TransactionType, label: string) => {
     const selected = type === value;
@@ -306,10 +300,10 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
           Catégorie <Text style={styles.labelHint}>· les plus utilisées d’abord</Text>
         </Text>
         <View style={styles.grid} accessibilityRole="radiogroup">
-          {chunk<Category | null>([...visible, null], 3).map((row, index) => (
+          {chunk<GridCell<Category>>(cells, 3).map((row, index) => (
             <View key={index} style={styles.gridRow}>
-              {row.map((category) => {
-                if (category === null) {
+              {row.map((cell) => {
+                if (cell.kind === "new") {
                   return (
                     <Pressable
                       key="new"
@@ -329,6 +323,26 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
                     </Pressable>
                   );
                 }
+                if (cell.kind === "more" || cell.kind === "less") {
+                  const more = cell.kind === "more";
+                  return (
+                    <Pressable
+                      key={cell.kind}
+                      onPress={() => setShowAll(more)}
+                      style={[styles.category, styles.moreCategory]}
+                      accessibilityRole="button"
+                      accessibilityLabel={more ? `Voir ${cell.hidden} autres catégories` : "Moins de catégories"}
+                    >
+                      <View style={styles.newIcon}>
+                        <Ionicons name={more ? "ellipsis-horizontal" : "chevron-up"} size={18} color={colors.textMuted} />
+                      </View>
+                      <Text style={[styles.categoryText, { color: colors.textMuted }]} numberOfLines={1}>
+                        {more ? `Plus (${cell.hidden})` : "Moins"}
+                      </Text>
+                    </Pressable>
+                  );
+                }
+                const { category } = cell;
                 const selected = category.id === categoryId;
                 return (
                   <Pressable
@@ -355,11 +369,6 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
             </View>
           ))}
         </View>
-        {(hiddenCount > 0 || showAll) && choices.length > VISIBLE_CATEGORIES && (
-          <Pressable onPress={() => setShowAll((value) => !value)} style={styles.moreButton} accessibilityRole="button">
-            <Text style={styles.moreText}>{showAll ? "Moins de catégories" : `Toutes les catégories (${choices.length})`}</Text>
-          </Pressable>
-        )}
 
       </ScrollView>
 
@@ -370,7 +379,7 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
         <Pressable
           onPress={handleSubmit}
           disabled={saving}
-          style={[styles.submit, { backgroundColor: accent }, saving && styles.disabled]}
+          style={[styles.submit, { backgroundColor: accent }, (saving || !ready) && styles.disabled]}
           accessibilityRole="button"
           accessibilityState={{ disabled: saving, busy: saving }}
         >
@@ -433,8 +442,7 @@ const createStyles = (c: Palette, compact: boolean) =>
       justifyContent: "center",
     },
     categoryText: { color: c.text, fontSize: 13, fontWeight: "600", textAlign: "center" },
-    moreButton: { alignSelf: "center", paddingVertical: 8, paddingHorizontal: 12 },
-    moreText: { color: c.link, fontSize: 14, fontWeight: "600" },
+    moreCategory: { backgroundColor: c.surfaceMuted },
     chips: { flexDirection: "row", gap: 8 },
     chip: {
       flex: 1,
@@ -463,6 +471,6 @@ const createStyles = (c: Palette, compact: boolean) =>
     },
     footer: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 8 },
     submit: { minHeight: 54, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-    disabled: { opacity: 0.6 },
+    disabled: { opacity: 0.45 },
     submitText: { color: c.onPrimary, fontSize: 16, fontWeight: "700" },
   });
