@@ -29,10 +29,16 @@ Née d'un comparatif Expo vs Flutter : la version Flutter (dépôt
 - **Opérations récurrentes** : loyer, forfait, salaire… ajoutés tout seuls
   à leur jour chaque mois (le 31 devient le 30 ou le 28 des mois courts),
   avec rattrapage des mois manqués ; pause, reprise, suppression.
-- **Mes données** : sauvegarde complète dans un fichier JSON partagé où
-  l'on veut (Drive, WhatsApp…), restauration après vérification complète du
-  fichier (tout ou rien), export CSV pour Excel / Google Sheets (« ; »,
-  virgule décimale, dépenses en négatif).
+- **Rappel du soir** (notification locale, sans serveur) : « Tu as fait le
+  point de ta journée ? » à l'heure choisie (20 h par défaut), sauf si une
+  opération a déjà été notée ce jour-là ; le toucher ouvre la saisie. Les 7
+  prochains soirs sont programmés d'avance.
+- **Mes données** : sauvegarde automatique hebdomadaire dans un dossier
+  choisi (les 5 dernières sont gardées), envoi d'une sauvegarde où l'on veut
+  (Drive, WhatsApp…) avec rappel tous les 30 jours, restauration après
+  vérification complète du fichier (tout ou rien), export CSV pour Excel /
+  Google Sheets (« ; », virgule décimale, dépenses en négatif). Les réglages
+  préfixés `appareil_` (dossier de sauvegarde…) restent propres au téléphone.
 - **Catégories personnalisables** : création, renommage, icône vectorielle,
   couleur, masquage (les opérations passées sont conservées).
 - **Budgets** : budget global du mois (écran dédié avec pavé numérique et
@@ -59,12 +65,12 @@ que l'utilisateur saisit.
 
 ## Stack
 
-Expo SDK 58 · React Native 0.88 · expo-router · expo-sqlite · expo-file-system · expo-sharing · expo-document-picker · @expo/vector-icons (Ionicons) · TypeScript strict · Jest
+Expo SDK 58 · React Native 0.88 · expo-router · expo-sqlite · expo-file-system · expo-sharing · expo-document-picker · expo-notifications · expo-localization · @expo/vector-icons (Ionicons) · TypeScript strict · Jest
 
 ```
 app/          écrans (routing par fichiers) : (tabs)/ = onglets index, list,
               stats, settings ; add, edit/[id], budget, categories,
-              category/[id], currency, recurring
+              category/[id], currency, recurring, reminder, auto-backup
 components/   TabBar, QuickEntry (saisie), TransactionRow, CategoryIcon,
               MonthNav, Chip, BudgetBar, mises à jour
 constants/    devises, couleurs et icônes de catégories, palettes clair/sombre
@@ -108,6 +114,13 @@ Le schéma est versionné par `PRAGMA user_version`. Pour le faire évoluer,
 **ajouter** une migration à la fin de `MIGRATIONS` dans `db/schema.ts` —
 ne jamais modifier une migration déjà publiée. Les catégories vivent en
 base (table `categories`) et se gèrent depuis l'app.
+
+## Versions
+
+Toutes les versions sont sur la page **Releases** du dépôt, chacune avec son
+APK et sa description. Avant de pousser un tag `vX.Y.Z`, ajouter sa section
+`## X.Y.Z — JJ/MM/AAAA` en haut de `CHANGELOG.md` : le workflow la reprend
+comme description de la release.
 
 ## Tester sur le téléphone (APK)
 

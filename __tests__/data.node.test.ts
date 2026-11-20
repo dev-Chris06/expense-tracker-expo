@@ -138,6 +138,20 @@ describe("backup round trip", () => {
     expect(getMonthlyBudget()).toBe(20000);
   });
 
+  it("keeps this phone's own settings out of backups and restores", () => {
+    mockDb.exec("INSERT INTO settings (cle, valeur) VALUES ('appareil_sauvegarde_dossier', 'content://ancien'), ('theme', 'dark')");
+    const saved = readBackup();
+    expect(saved.settings.map((s) => s.cle)).toEqual(["theme"]);
+
+    mockDb.exec("UPDATE settings SET valeur = 'content://nouveau' WHERE cle = 'appareil_sauvegarde_dossier'");
+    saved.settings.push({ cle: "appareil_sauvegarde_dossier", valeur: "content://autre-telephone" });
+    restoreBackup(saved);
+    expect(rows("SELECT cle, valeur FROM settings ORDER BY cle")).toEqual([
+      { cle: "appareil_sauvegarde_dossier", valeur: "content://nouveau" },
+      { cle: "theme", valeur: "dark" },
+    ]);
+  });
+
   it("leaves current data untouched if the restore fails midway", () => {
     const saved = readBackup();
     // Deux catégories de même nom : refusé par la base au milieu de l'import.

@@ -1,7 +1,7 @@
 {
   "name": "depenses-perso",
   "main": "index.ts",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@react-native-community/datetimepicker": "9.2.1",
@@ -12,6 +12,7 @@
     "expo-font": "~58.0.10",
     "expo-linking": "~58.0.15",
     "expo-localization": "~58.0.5",
+    "expo-notifications": "~58.1.9",
     "expo-router": "~58.0.29",
     "expo-sharing": "~58.0.23",
     "expo-splash-screen": "~58.0.11",

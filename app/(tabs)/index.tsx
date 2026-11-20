@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import BudgetBar from "@/components/BudgetBar";
 import CategoryIcon from "@/components/CategoryIcon";
+import HomeTips from "@/components/HomeTips";
 import TransactionRow from "@/components/TransactionRow";
 import { UpdateBanner } from "@/components/Updates";
 import { type Palette, useColors } from "@/constants/theme";
@@ -86,6 +87,7 @@ export default function HomeScreen() {
         </View>
         {error && <Text style={styles.error}>Impossible de charger les opérations.</Text>}
         <UpdateBanner />
+        <HomeTips />
 
         <Pressable
           style={({ pressed }) => [styles.hero, pressed && styles.pressed]}

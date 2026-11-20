@@ -13,6 +13,10 @@ import {
 } from "@/utils/backup";
 
 import { getDatabase } from "./database";
+import { DEVICE_SETTING_PREFIX } from "./settings";
+
+/** Réglages propres à ce téléphone (dossier de sauvegarde…), hors sauvegarde. */
+const DEVICE_LIKE = `${DEVICE_SETTING_PREFIX.replace(/_/g, "\\_")}%`;
 
 export function readBackup(now: Date = new Date()): Backup {
   const db = getDatabase();
@@ -29,7 +33,10 @@ export function readBackup(now: Date = new Date()): Backup {
     recurrences: db.getAllSync<BackupRecurrence>(
       "SELECT id, montant, categorie_id, note, jour, dernier_mois, active FROM recurrences ORDER BY id",
     ),
-    settings: db.getAllSync<BackupSetting>("SELECT cle, valeur FROM settings ORDER BY cle"),
+    settings: db.getAllSync<BackupSetting>(
+      "SELECT cle, valeur FROM settings WHERE cle NOT LIKE ? ESCAPE '\\' ORDER BY cle",
+      DEVICE_LIKE,
+    ),
   };
 }
 
@@ -50,7 +57,8 @@ export function restoreBackup(backup: Backup): void {
     db.runSync("DELETE FROM transactions");
     db.runSync("DELETE FROM recurrences");
     db.runSync("DELETE FROM categories");
-    db.runSync("DELETE FROM settings");
+    // Les réglages de ce téléphone restent ceux de ce téléphone.
+    db.runSync("DELETE FROM settings WHERE cle NOT LIKE ? ESCAPE '\\'", DEVICE_LIKE);
 
     for (const c of backup.categories) {
       db.runSync(
@@ -88,6 +96,7 @@ export function restoreBackup(backup: Backup): void {
       );
     }
     for (const s of backup.settings) {
+      if (s.cle.startsWith(DEVICE_SETTING_PREFIX)) continue;
       db.runSync("INSERT INTO settings (cle, valeur) VALUES (?, ?)", s.cle, s.valeur);
     }
   });

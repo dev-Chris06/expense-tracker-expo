@@ -10,6 +10,7 @@ import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
 import { readBackup } from "@/db/backup";
+import { recordSharedBackup } from "@/db/settings";
 import { getAllTransactions } from "@/db/transactions";
 import { backupFileName, type Backup, parseBackup } from "@/utils/backup";
 import { buildCsv, csvFileName } from "@/utils/csv";
@@ -36,6 +37,9 @@ export async function shareBackup(): Promise<void> {
     "application/json",
     "Garder ma sauvegarde Dépenses Perso",
   );
+  // Fenêtre de partage refermée : on ne sait pas si le fichier est parti,
+  // mais l'utilisateur a fait la démarche ; le rappel se tait pour 30 jours.
+  recordSharedBackup(new Date().toISOString());
 }
 
 /** Crée le CSV de toutes les opérations et ouvre la fenêtre de partage. */

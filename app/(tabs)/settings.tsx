@@ -12,19 +12,26 @@ import { applyThemePreference, type Palette, useColors } from "@/constants/theme
 import { countTransactions, restoreBackup } from "@/db/backup";
 import { applyDueRecurrences, countActiveRecurrences } from "@/db/recurrences";
 import {
+  type AutoBackupState,
+  getAutoBackupState,
   getCurrencyCode,
   getMonthlyBudget,
+  getReminderSettings,
   getThemePreference,
+  type ReminderSettings,
   setThemePreference,
   type ThemePreference,
 } from "@/db/settings";
 import { setCurrentCurrency, useCurrency } from "@/utils/currency";
-import { pickBackup, shareBackup, shareCsv } from "@/utils/dataFiles";
-import { formatDisplayDate } from "@/utils/dateHelpers";
+import { folderLabel } from "@/utils/autoBackup";
+import { pickBackup, shareCsv } from "@/utils/dataFiles";
+import { formatDateTime, formatDisplayDate } from "@/utils/dateHelpers";
 import { UserFacingError } from "@/utils/errors";
 import { formatAmount, formatCount } from "@/utils/formatters";
+import { formatReminderTime } from "@/utils/reminderSchedule";
+import { syncRemindersQuietly } from "@/utils/reminders";
 
-type FileAction = "backup" | "restore" | "csv";
+type FileAction = "restore" | "csv";
 
 const THEMES: { value: ThemePreference; label: string }[] = [
   { value: "system", label: "Comme le tél." },
@@ -74,12 +81,17 @@ export default function SettingsScreen() {
   const [theme, setTheme] = useState<ThemePreference>(getThemePreference);
   const [budget, setBudget] = useState<number | null>(getMonthlyBudget);
   const [recurringCount, setRecurringCount] = useState(0);
+  const [reminder, setReminder] = useState<ReminderSettings>(getReminderSettings);
+  const [autoBackup, setAutoBackup] = useState<AutoBackupState>(getAutoBackupState);
   const [busy, setBusy] = useState<FileAction | null>(null);
   const currency = useCurrency();
 
-  // Budget et récurrences se modifient sur leurs propres écrans : relus au retour.
+  // Budget, récurrences, rappel et sauvegardes se modifient sur leurs propres
+  // écrans : relus au retour.
   const reload = useCallback(() => {
     setBudget(getMonthlyBudget());
+    setReminder(getReminderSettings());
+    setAutoBackup(getAutoBackupState());
     countActiveRecurrences()
       .then(setRecurringCount)
       .catch(() => undefined);
@@ -129,6 +141,7 @@ export default function SettingsScreen() {
             } catch {
               // Réessayé au prochain affichage de l'accueil.
             }
+            syncRemindersQuietly();
             reload();
             Alert.alert("Sauvegarde restaurée", `${formatCount(backup.transactions.length)} retrouvée${backup.transactions.length > 1 ? "s" : ""}.`);
           },
@@ -194,13 +207,32 @@ export default function SettingsScreen() {
           onPress={() => router.push("/categories")}
         />
 
+        <Text style={styles.section}>RAPPEL</Text>
+        <LinkRow
+          icon="notifications-outline"
+          title="Rappel du soir"
+          hint={
+            reminder.enabled
+              ? `Chaque soir à ${formatReminderTime(reminder)}, si rien n’a été noté dans la journée.`
+              : "Désactivé. Un rappel le soir pour ne rien oublier."
+          }
+          onPress={() => router.push("/reminder")}
+        />
+
         <Text style={styles.section}>MES DONNÉES</Text>
         <LinkRow
           icon="cloud-upload-outline"
-          title="Sauvegarder"
-          hint="Crée un fichier à garder sur Drive, WhatsApp ou ailleurs : pour changer de téléphone sans rien perdre."
-          busy={busy === "backup"}
-          onPress={() => runFileAction("backup", shareBackup)}
+          title="Sauvegardes"
+          hint={
+            autoBackup.error
+              ? `Problème : ${autoBackup.error}`
+              : autoBackup.folder
+                ? `Automatique chaque semaine dans ${folderLabel(autoBackup.folder)}${
+                    autoBackup.last ? `, dernière le ${formatDateTime(autoBackup.last)}` : ""
+                  }.`
+                : "Automatique dans un dossier, et envoi sur Drive ou WhatsApp pour changer de téléphone sans rien perdre."
+          }
+          onPress={() => router.push("/auto-backup")}
         />
         <LinkRow
           icon="cloud-download-outline"

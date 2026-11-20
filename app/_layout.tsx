@@ -14,15 +14,18 @@
  *   app/category/[id].tsx → "/category/3" ou "/category/new"
  *   app/currency.tsx  → "/currency" (choix de la devise)
  *   app/recurring.tsx → "/recurring" (opérations récurrentes)
+ *   app/reminder.tsx  → "/reminder" (rappel du soir)
+ *   app/auto-backup.tsx → "/auto-backup" (sauvegardes)
  *
  * <Stack> fournit une navigation en pile : la saisie, la modification et
  * les catégories s'empilent par-dessus les onglets. Le ThemeProvider aligne
  * les en-têtes de navigation sur le thème clair/sombre.
  */
-import { useState } from "react";
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import { useEffect, useState } from "react";
+import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from "expo-router";
+import * as Notifications from "expo-notifications";
 import { StatusBar } from "expo-status-bar";
-import { useColorScheme } from "react-native";
+import { AppState, useColorScheme } from "react-native";
 
 import { applyThemePreference, darkColors, lightColors } from "@/constants/theme";
 import { findCurrency } from "@/constants/currencies";
@@ -30,7 +33,58 @@ import { countTransactions } from "@/db/backup";
 import { applyDueRecurrences } from "@/db/recurrences";
 import { changeCurrency, getCurrencyCode, getThemePreference, hasCurrencySetting } from "@/db/settings";
 import { setCurrentCurrency } from "@/utils/currency";
+import { runAutoBackupIfDue } from "@/utils/autoBackup";
 import { detectLocalCurrency } from "@/utils/localCurrency";
+import { REMINDER_URL, syncRemindersQuietly } from "@/utils/reminders";
+
+// Rappel reçu pendant que l'app est ouverte : affiché quand même.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+/** Toucher le rappel du soir ouvre la saisie, app fermée ou non. */
+function openFromNotification(response: Notifications.NotificationResponse | null): void {
+  if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+  if (response.notification.request.content.data?.url === REMINDER_URL) {
+    Notifications.clearLastNotificationResponse();
+    router.push(REMINDER_URL);
+  }
+}
+
+/**
+ * Au démarrage et à chaque retour dans l'app : récurrences arrivées à
+ * échéance, rappels des prochains jours, sauvegarde automatique si due.
+ */
+function useAppLifecycle(): void {
+  useEffect(() => {
+    openFromNotification(Notifications.getLastNotificationResponse());
+    const tapped = Notifications.addNotificationResponseReceivedListener(openFromNotification);
+
+    const refresh = () => {
+      syncRemindersQuietly();
+      void runAutoBackupIfDue();
+    };
+    refresh();
+    const appState = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      try {
+        applyDueRecurrences();
+      } catch {
+        // Réessayé à l'affichage de l'accueil.
+      }
+      refresh();
+    });
+    return () => {
+      tapped.remove();
+      appState.remove();
+    };
+  }, []);
+}
 
 /**
  * Premier lancement (aucune devise choisie, aucune opération) : prend la
@@ -67,6 +121,7 @@ function applySavedSettings(): boolean {
 
 export default function RootLayout() {
   useState(applySavedSettings);
+  useAppLifecycle();
   const dark = useColorScheme() === "dark";
   const base = dark ? DarkTheme : DefaultTheme;
   const palette = dark ? darkColors : lightColors;
@@ -97,6 +152,8 @@ export default function RootLayout() {
         <Stack.Screen name="category/[id]" options={{ title: "Catégorie" }} />
         <Stack.Screen name="currency" options={{ title: "Devise" }} />
         <Stack.Screen name="recurring" options={{ title: "Opérations récurrentes" }} />
+        <Stack.Screen name="reminder" options={{ title: "Rappel du soir" }} />
+        <Stack.Screen name="auto-backup" options={{ title: "Sauvegarde" }} />
       </Stack>
     </ThemeProvider>
   );

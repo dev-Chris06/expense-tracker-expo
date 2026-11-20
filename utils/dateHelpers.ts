@@ -48,3 +48,11 @@ export function isValidISODate(value: string): boolean {
   const date = new Date(year, month - 1, day);
   return toISODate(date) === value;
 }
+
+/** Date et heure locales d'un instant ISO : "20/11/2026 à 18 h 05". */
+export function formatDateTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${formatDisplayDate(toISODate(date))} à ${date.getHours()} h ${minutes}`;
+}

@@ -164,3 +164,12 @@ export async function getMonthlyTotals(limit = 12): Promise<MonthTotal[]> {
     limit,
   );
 }
+
+/** Au moins une opération à cette date ISO ? (rappel du soir) */
+export async function hasTransactionOn(date: string): Promise<boolean> {
+  const row = await getDatabase().getFirstAsync<{ n: number }>(
+    "SELECT COUNT(*) AS n FROM transactions WHERE date = ?",
+    date,
+  );
+  return (row?.n ?? 0) > 0;
+}

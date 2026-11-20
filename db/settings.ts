@@ -84,3 +84,106 @@ export function changeCurrency(from: Currency, to: Currency): void {
     setSetting(CURRENCY_KEY, to.code);
   });
 }
+
+/* ---------- Rappel du soir ---------- */
+
+const REMINDER_ENABLED_KEY = "rappel_actif";
+const REMINDER_TIME_KEY = "rappel_heure";
+const REMINDER_ASKED_KEY = "rappel_propose";
+
+export interface ReminderSettings {
+  enabled: boolean;
+  hour: number;
+  minute: number;
+}
+
+export const DEFAULT_REMINDER_TIME = { hour: 20, minute: 0 };
+
+export function getReminderSettings(): ReminderSettings {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(getSetting(REMINDER_TIME_KEY) ?? "");
+  const hour = match ? Number(match[1]) : DEFAULT_REMINDER_TIME.hour;
+  const minute = match ? Number(match[2]) : DEFAULT_REMINDER_TIME.minute;
+  const valid = hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+  return {
+    enabled: getSetting(REMINDER_ENABLED_KEY) === "1",
+    hour: valid ? hour : DEFAULT_REMINDER_TIME.hour,
+    minute: valid ? minute : DEFAULT_REMINDER_TIME.minute,
+  };
+}
+
+export function setReminderEnabled(enabled: boolean): void {
+  setSetting(REMINDER_ENABLED_KEY, enabled ? "1" : "0");
+  setSetting(REMINDER_ASKED_KEY, "1");
+}
+
+export function setReminderTime(hour: number, minute: number): void {
+  setSetting(REMINDER_TIME_KEY, `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
+}
+
+/** La carte « Un rappel le soir ? » a-t-elle déjà eu une réponse ? */
+export function wasReminderOffered(): boolean {
+  return getSetting(REMINDER_ASKED_KEY) === "1";
+}
+
+export function markReminderOffered(): void {
+  setSetting(REMINDER_ASKED_KEY, "1");
+}
+
+/* ---------- Réglages propres à ce téléphone ----------
+ * Préfixe « appareil_ » : ils ne partent pas dans les sauvegardes et une
+ * restauration ne les écrase pas (un dossier choisi sur l'ancien téléphone
+ * n'existe pas sur le nouveau). */
+
+export const DEVICE_SETTING_PREFIX = "appareil_";
+const BACKUP_FOLDER_KEY = `${DEVICE_SETTING_PREFIX}sauvegarde_dossier`;
+const BACKUP_LAST_KEY = `${DEVICE_SETTING_PREFIX}sauvegarde_derniere`;
+const BACKUP_ERROR_KEY = `${DEVICE_SETTING_PREFIX}sauvegarde_erreur`;
+const SHARED_LAST_KEY = `${DEVICE_SETTING_PREFIX}envoi_dernier`;
+const SHARE_SNOOZE_KEY = `${DEVICE_SETTING_PREFIX}envoi_rappel_apres`;
+
+export interface AutoBackupState {
+  /** URI du dossier choisi, ou null si la sauvegarde automatique est arrêtée. */
+  folder: string | null;
+  /** Date ISO de la dernière sauvegarde automatique réussie. */
+  last: string | null;
+  /** Message de la dernière erreur, effacé au prochain succès. */
+  error: string | null;
+}
+
+export function getAutoBackupState(): AutoBackupState {
+  return { folder: getSetting(BACKUP_FOLDER_KEY), last: getSetting(BACKUP_LAST_KEY), error: getSetting(BACKUP_ERROR_KEY) };
+}
+
+export function setAutoBackupFolder(uri: string | null): void {
+  setSetting(BACKUP_FOLDER_KEY, uri);
+  setSetting(BACKUP_ERROR_KEY, null);
+  if (uri === null) setSetting(BACKUP_LAST_KEY, null);
+}
+
+export function recordAutoBackup(result: { at: string } | { error: string }): void {
+  if ("at" in result) {
+    setSetting(BACKUP_LAST_KEY, result.at);
+    setSetting(BACKUP_ERROR_KEY, null);
+  } else {
+    setSetting(BACKUP_ERROR_KEY, result.error);
+  }
+}
+
+/** Dernière sauvegarde envoyée hors du téléphone (partage), date ISO ou null. */
+export function getLastSharedBackup(): string | null {
+  return getSetting(SHARED_LAST_KEY);
+}
+
+export function recordSharedBackup(at: string): void {
+  setSetting(SHARED_LAST_KEY, at);
+  setSetting(SHARE_SNOOZE_KEY, null);
+}
+
+/** Date ISO avant laquelle on ne repropose pas d'envoyer une sauvegarde. */
+export function getShareReminderSnooze(): string | null {
+  return getSetting(SHARE_SNOOZE_KEY);
+}
+
+export function snoozeShareReminder(until: string): void {
+  setSetting(SHARE_SNOOZE_KEY, until);
+}

@@ -5,6 +5,7 @@ import QuickEntry from "@/components/QuickEntry";
 import { addRecurrence } from "@/db/recurrences";
 import { addTransaction } from "@/db/transactions";
 import { budgetAlertsAfterAdd } from "@/utils/budgetAlerts";
+import { syncRemindersQuietly } from "@/utils/reminders";
 
 export default function AddScreen() {
   const router = useRouter();
@@ -28,6 +29,8 @@ export default function AddScreen() {
             dernierMois: value.date.slice(0, 7),
           });
         }
+        // Une opération notée aujourd'hui : pas de rappel ce soir.
+        syncRemindersQuietly();
         // Une alerte ratée ne doit pas faire croire que l'ajout a échoué.
         const alerts = await budgetAlertsAfterAdd(value, category).catch(() => []);
         // Retour à l'onglet d'origine, qui se recharge seul.
