@@ -1,9 +1,17 @@
 /**
- * Devise du pays réglé dans le téléphone (Bénin → franc CFA, France → euro).
+ * Devise du pays où se trouve le téléphone (Bénin → franc CFA).
+ *
+ * Indices, du plus fiable au moins fiable :
+ * 1. le fuseau horaire (« Africa/Porto-Novo »), réglé automatiquement par
+ *    le réseau mobile ;
+ * 2. la région de la langue (« fr-BJ ») — souvent fausse en Afrique
+ *    francophone, où beaucoup de téléphones sont en « français (France) » ;
+ * 3. la devise de la langue.
  */
-import { getLocales } from "expo-localization";
+import { getCalendars, getLocales } from "expo-localization";
 
 import { countryName, type Currency, currencyForRegion, findCurrency } from "@/constants/currencies";
+import { TIME_ZONE_REGIONS } from "@/constants/currencyData";
 
 export interface LocalCurrency {
   currency: Currency;
@@ -11,14 +19,33 @@ export interface LocalCurrency {
   country: string | null;
 }
 
+/** Pays d'un fuseau horaire IANA, ou null. */
+export function regionForTimeZone(timeZone: string | null | undefined): string | null {
+  return (timeZone && TIME_ZONE_REGIONS[timeZone]) || null;
+}
+
+export function localCurrencyFrom(hints: {
+  timeZone?: string | null;
+  regionCode?: string | null;
+  currencyCode?: string | null;
+}): LocalCurrency | null {
+  for (const region of [regionForTimeZone(hints.timeZone), hints.regionCode]) {
+    const currency = currencyForRegion(region);
+    if (currency) return { currency, country: countryName(region) };
+  }
+  const code = hints.currencyCode;
+  const byCode = code ? findCurrency(code) : null;
+  return byCode && byCode.code === code ? { currency: byCode, country: null } : null;
+}
+
 export function detectLocalCurrency(): LocalCurrency | null {
   try {
     const locale = getLocales()[0];
-    const byRegion = currencyForRegion(locale?.regionCode);
-    if (byRegion) return { currency: byRegion, country: countryName(locale?.regionCode) };
-    const code = locale?.currencyCode;
-    const byCode = code ? findCurrency(code) : null;
-    return byCode && byCode.code === code ? { currency: byCode, country: null } : null;
+    return localCurrencyFrom({
+      timeZone: getCalendars()[0]?.timeZone,
+      regionCode: locale?.regionCode,
+      currencyCode: locale?.currencyCode,
+    });
   } catch {
     return null;
   }

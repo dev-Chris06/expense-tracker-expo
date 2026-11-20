@@ -98,7 +98,9 @@ node scripts/generate-currencies.mjs
 ```
 
 Les symboles courts habituels (F pour le franc CFA, DH, DA…) sont fixés dans
-le script.
+le script. Il lit aussi `/usr/share/zoneinfo/zone.tab` (fuseau → pays) : le
+pays du téléphone est deviné par son fuseau horaire, réglé par le réseau,
+car la langue est souvent « français (France) » en Afrique francophone.
 
 ## Base de données
 

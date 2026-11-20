@@ -3,13 +3,14 @@
  * pays, avec leur nom français, leur symbole, leur nombre de décimales et
  * les pays qui les utilisent (pour la recherche « Bénin » → franc CFA).
  *
- * Sources : le paquet country-to-currency (pays → devise ISO 4217) et les
+ * Sources : le paquet country-to-currency (pays → devise ISO 4217), les
  * données Unicode CLDR intégrées à Node.js (Intl) pour les noms français,
- * les symboles et les décimales.
+ * les symboles et les décimales, et la base des fuseaux horaires IANA
+ * (zone.tab, fuseau → pays) pour deviner le pays du téléphone.
  *
  *   node scripts/generate-currencies.mjs
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 import countryToCurrency from "country-to-currency";
 
@@ -44,10 +45,25 @@ const currencies = [...countriesByCurrency.keys()].sort().map((code) => {
   };
 });
 
+// Fuseau horaire → pays (« Africa/Porto-Novo » → BJ). Réglé automatiquement
+// par le réseau, il est plus fiable que la langue du téléphone (souvent
+// « français (France) » en Afrique francophone).
+const zoneTab = readFileSync(process.env.ZONE_TAB ?? "/usr/share/zoneinfo/zone.tab", "utf8");
+const timeZones = {};
+for (const line of zoneTab.split("\n")) {
+  if (line.startsWith("#") || !line.trim()) continue;
+  const [region, , zone] = line.split("\t");
+  if (countryToCurrency[region]) timeZones[zone] = region;
+}
+const sortedZones = Object.fromEntries(Object.entries(timeZones).sort(([a], [b]) => a.localeCompare(b)));
+
 const out = `/* Généré par scripts/generate-currencies.mjs — ne pas modifier à la main. */
 import type { Currency } from "./currencies";
 
 export const CURRENCY_DATA: readonly Currency[] = ${JSON.stringify(currencies, null, 2)};
+
+/** Fuseau horaire IANA → code pays ISO 3166. */
+export const TIME_ZONE_REGIONS: Readonly<Record<string, string>> = ${JSON.stringify(sortedZones, null, 2)};
 `;
 writeFileSync(new URL("../constants/currencyData.ts", import.meta.url), out);
-console.log(`${currencies.length} devises, ${Object.keys(countryToCurrency).length} pays`);
+console.log(`${currencies.length} devises, ${Object.keys(countryToCurrency).length} pays, ${Object.keys(sortedZones).length} fuseaux`);

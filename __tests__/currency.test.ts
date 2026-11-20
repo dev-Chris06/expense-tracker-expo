@@ -6,6 +6,7 @@ import { getCurrency, setCurrentCurrency } from "../utils/currency";
 import { formatAmount, formatMajor, formatNet } from "../utils/formatters";
 import { formatDigits, keypadKeys, pressKey, toKeypadText } from "../utils/keypad";
 import { dueDates, occurrenceDate, recurrenceLabel, resumeLastMonth } from "../utils/recurrence";
+import { localCurrencyFrom } from "../utils/localCurrency";
 import { currencyMatches } from "../utils/search";
 import { parseAmount } from "../utils/validation";
 import type { Transaction } from "../types/transaction";
@@ -69,6 +70,20 @@ describe("currency list", () => {
     expect(findCurrency("XOF").symbole).toBe("F");
     expect(findCurrency("XAF").decimales).toBe(0);
     expect(findCurrency("EUR").symbole).toBe("€");
+  });
+});
+
+describe("local currency detection", () => {
+  it("trusts the time zone over a French-from-France phone language", () => {
+    const local = localCurrencyFrom({ timeZone: "Africa/Porto-Novo", regionCode: "FR", currencyCode: "EUR" });
+    expect(local?.currency.code).toBe("XOF");
+    expect(local?.country).toBe("Bénin");
+  });
+
+  it("falls back to the language region, then its currency", () => {
+    expect(localCurrencyFrom({ timeZone: "Mars/Olympus", regionCode: "CM" })?.currency.code).toBe("XAF");
+    expect(localCurrencyFrom({ timeZone: null, regionCode: null, currencyCode: "GHS" })?.currency.code).toBe("GHS");
+    expect(localCurrencyFrom({})).toBeNull();
   });
 });
 
