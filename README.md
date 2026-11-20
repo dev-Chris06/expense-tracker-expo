@@ -90,7 +90,7 @@ elle-même les nouvelles versions.
 
 1. Mettre à jour `expo.version` **et** incrémenter `expo.android.versionCode`
    dans `app.json` (et garder `version` de `package.json` identique).
-2. Commiter, puis pousser un tag correspondant : `git tag v1.3.2 && git push origin v1.3.2`.
+2. Commiter, puis pousser un tag correspondant : `git tag v1.3.3 && git push origin v1.3.3`.
 3. Le workflow **Build Android APK** publie l'APK et un `version.json` dans les
    Releases. C'est ce fichier que l'app lit pour détecter la mise à jour.
 
@@ -103,8 +103,8 @@ Maven), c'est en général passager : relancer le job (`gh run rerun <id> --fail
 **Installer directement par USB** (téléphone branché, débogage USB activé) :
 
 ```bash
-gh release download v1.3.2 -p 'depenses-expo-*.apk'
-adb install -r depenses-expo-1.3.2.apk   # -r : mise à jour, données conservées
+gh release download v1.3.3 -p 'depenses-expo-*.apk'
+adb install -r depenses-expo-1.3.3.apk   # -r : mise à jour, données conservées
 ```
 
 Le nom du fichier APK (`depenses-expo-…`) est volontairement conservé :

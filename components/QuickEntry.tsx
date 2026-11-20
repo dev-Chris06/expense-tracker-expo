@@ -245,6 +245,63 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
           </Text>
         )}
 
+        {/* Date et note juste sous le montant : toujours visibles, quelle que
+            soit la hauteur de la grille des catégories. */}
+        <View style={styles.chips}>
+          {Platform.OS === "web" ? (
+            <TextInput
+              style={[styles.chip, styles.chipInput]}
+              value={date}
+              onChangeText={setDate}
+              placeholder="AAAA-MM-JJ"
+              placeholderTextColor={colors.textMuted}
+              accessibilityLabel="Date, année-mois-jour"
+            />
+          ) : (
+            <Pressable
+              onPress={() => setDatePickerVisible((v) => !v)}
+              style={styles.chip}
+              accessibilityRole="button"
+              accessibilityLabel={`Date : ${dateChip}. Changer`}
+            >
+              <Ionicons name="calendar-outline" size={16} color={colors.text} />
+              <Text style={styles.chipText}>{dateChip}</Text>
+            </Pressable>
+          )}
+          <Pressable
+            onPress={() => setNoteOpen((v) => !v)}
+            style={[styles.chip, noteOpen && { borderColor: accent }]}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: noteOpen }}
+          >
+            <Ionicons name="create-outline" size={16} color={colors.text} />
+            <Text style={styles.chipText}>{note.trim() ? "Note ✓" : "Note"}</Text>
+          </Pressable>
+        </View>
+        {datePickerVisible && Platform.OS !== "web" && (
+          <DateTimePicker
+            value={parsedDate}
+            mode="date"
+            display={Platform.OS === "ios" ? "inline" : "default"}
+            onChange={handleDateChange}
+            maximumDate={new Date(2100, 11, 31)}
+          />
+        )}
+        {noteOpen && (
+          <TextInput
+            style={styles.note}
+            value={note}
+            onChangeText={setNote}
+            onFocus={() => setNoteFocused(true)}
+            onBlur={() => setNoteFocused(false)}
+            placeholder={type === "depense" ? "Ex. repas midi, zem…" : "Ex. salaire de novembre"}
+            placeholderTextColor={colors.textMuted}
+            maxLength={280}
+            returnKeyType="done"
+            accessibilityLabel="Note facultative"
+          />
+        )}
+
         <Text style={styles.label}>
           Catégorie <Text style={styles.labelHint}>· les plus utilisées d’abord</Text>
         </Text>
@@ -304,60 +361,6 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
           </Pressable>
         )}
 
-        <View style={styles.chips}>
-          {Platform.OS === "web" ? (
-            <TextInput
-              style={[styles.chip, styles.chipInput]}
-              value={date}
-              onChangeText={setDate}
-              placeholder="AAAA-MM-JJ"
-              placeholderTextColor={colors.textMuted}
-              accessibilityLabel="Date, année-mois-jour"
-            />
-          ) : (
-            <Pressable
-              onPress={() => setDatePickerVisible((v) => !v)}
-              style={styles.chip}
-              accessibilityRole="button"
-              accessibilityLabel={`Date : ${dateChip}. Changer`}
-            >
-              <Ionicons name="calendar-outline" size={16} color={colors.text} />
-              <Text style={styles.chipText}>{dateChip}</Text>
-            </Pressable>
-          )}
-          <Pressable
-            onPress={() => setNoteOpen((v) => !v)}
-            style={[styles.chip, noteOpen && { borderColor: accent }]}
-            accessibilityRole="button"
-            accessibilityState={{ expanded: noteOpen }}
-          >
-            <Ionicons name="create-outline" size={16} color={colors.text} />
-            <Text style={styles.chipText}>{note.trim() ? "Note ✓" : "Note"}</Text>
-          </Pressable>
-        </View>
-        {datePickerVisible && Platform.OS !== "web" && (
-          <DateTimePicker
-            value={parsedDate}
-            mode="date"
-            display={Platform.OS === "ios" ? "inline" : "default"}
-            onChange={handleDateChange}
-            maximumDate={new Date(2100, 11, 31)}
-          />
-        )}
-        {noteOpen && (
-          <TextInput
-            style={styles.note}
-            value={note}
-            onChangeText={setNote}
-            onFocus={() => setNoteFocused(true)}
-            onBlur={() => setNoteFocused(false)}
-            placeholder={type === "depense" ? "Ex. repas midi, zem…" : "Ex. salaire de novembre"}
-            placeholderTextColor={colors.textMuted}
-            maxLength={280}
-            returnKeyType="done"
-            accessibilityLabel="Note facultative"
-          />
-        )}
       </ScrollView>
 
       {/* Le pavé laisse la place au clavier du téléphone pendant la saisie de la note. */}
