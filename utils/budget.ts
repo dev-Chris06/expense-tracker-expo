@@ -26,3 +26,25 @@ export function crossedLevel(before: number, after: number, budget: number): Exc
 export function budgetPercent(spent: number, budget: number): number {
   return Math.floor((spent / budget) * 100);
 }
+
+/** Arrondit à 2 chiffres significatifs, en unités de la devise : 57 500 → 58 000. */
+export function roundNice(amount: number, decimals: number): number {
+  const factor = 10 ** decimals;
+  const major = amount / factor;
+  if (major <= 0) return 0;
+  const step = 10 ** Math.max(0, Math.floor(Math.log10(major)) - 1);
+  return Math.round(major / step) * step * factor;
+}
+
+/**
+ * Budgets proposés d'après les dépenses des derniers mois : un peu moins
+ * que d'habitude (pour épargner), comme d'habitude, et un peu plus.
+ * Rien à proposer sans historique.
+ */
+export function budgetSuggestions(pastMonthlySpending: readonly number[], decimals: number): number[] {
+  const months = pastMonthlySpending.filter((v) => v > 0);
+  if (months.length === 0) return [];
+  const average = months.reduce((a, b) => a + b, 0) / months.length;
+  const values = [0.8, 1, 1.2].map((ratio) => roundNice(average * ratio, decimals)).filter((v) => v > 0);
+  return [...new Set(values)];
+}

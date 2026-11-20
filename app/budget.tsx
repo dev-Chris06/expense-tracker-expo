@@ -11,14 +11,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Keypad from "@/components/Keypad";
 import { type Palette, useColors } from "@/constants/theme";
 import { getMonthlyBudget, setMonthlyBudget } from "@/db/settings";
-import { getMonthSummary } from "@/db/transactions";
-import { budgetPercent } from "@/utils/budget";
+import { getMonthlyTotals, getMonthSummary } from "@/db/transactions";
+import { budgetPercent, budgetSuggestions } from "@/utils/budget";
+import { useCurrency } from "@/utils/currency";
 import { formatShort } from "@/utils/formatters";
-import { formatDigits, pressKey } from "@/utils/keypad";
+import { formatDigits, pressKey, toKeypadText } from "@/utils/keypad";
 import { formatMonthLabel, monthKey } from "@/utils/months";
 import { parseAmount } from "@/utils/validation";
-
-const SUGGESTIONS = [100_000, 150_000, 200_000];
 
 export default function BudgetScreen() {
   const router = useRouter();
@@ -28,23 +27,29 @@ export default function BudgetScreen() {
   const styles = useMemo(() => createStyles(colors, compact), [colors, compact]);
 
   const [saved] = useState<number | null>(getMonthlyBudget);
-  const [amount, setAmount] = useState(saved === null ? "" : String(saved));
+  const currency = useCurrency();
+  const [amount, setAmount] = useState(saved === null ? "" : toKeypadText(saved));
   const [spent, setSpent] = useState(0);
+  const [suggestions, setSuggestions] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const month = monthKey();
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      getMonthSummary(month)
-        .then((summary) => {
-          if (active) setSpent(summary.depenses);
+      Promise.all([getMonthSummary(month), getMonthlyTotals(4)])
+        .then(([summary, totals]) => {
+          if (!active) return;
+          setSpent(summary.depenses);
+          // Moyenne des 3 derniers mois terminés.
+          const past = totals.filter((row) => row.month < month).slice(0, 3);
+          setSuggestions(budgetSuggestions(past.map((row) => row.depenses), currency.decimales));
         })
         .catch(() => undefined);
       return () => {
         active = false;
       };
-    }, [month]),
+    }, [month, currency.decimales]),
   );
 
   const close = () => (router.canGoBack() ? router.back() : router.replace("/"));
@@ -88,10 +93,10 @@ export default function BudgetScreen() {
           Combien veux-tu dépenser au maximum chaque mois ? Tu seras prévenu à 80 % puis à 100 %.
         </Text>
 
-        <View style={styles.amountBox} accessible accessibilityLabel={`Budget : ${amount || "0"} francs par mois`}>
+        <View style={styles.amountBox} accessible accessibilityLabel={`Budget : ${formatDigits(amount)} ${currency.nom} par mois`}>
           <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
             {formatDigits(amount)}
-            <Text style={styles.unit}> F / mois</Text>
+            <Text style={styles.unit}> {currency.symbole} / mois</Text>
           </Text>
           <Text style={styles.spent}>
             Déjà dépensé en {formatMonthLabel(month).split(" ")[0].toLowerCase()} : {formatShort(spent)}
@@ -105,12 +110,13 @@ export default function BudgetScreen() {
           </Text>
         )}
 
+        {suggestions.length > 0 && <Text style={styles.suggestionsLabel}>D’après tes derniers mois</Text>}
         <View style={styles.suggestions}>
-          {SUGGESTIONS.map((suggestion) => (
+          {suggestions.map((suggestion) => (
             <Pressable
               key={suggestion}
               onPress={() => {
-                setAmount(String(suggestion));
+                setAmount(toKeypadText(suggestion));
                 setError(null);
               }}
               style={styles.suggestion}
@@ -150,7 +156,7 @@ export default function BudgetScreen() {
 
       <View style={styles.footer}>
         <Pressable onPress={save} style={styles.submit} accessibilityRole="button">
-          <Text style={styles.submitText}>Enregistrer · {formatDigits(amount)} F / mois</Text>
+          <Text style={styles.submitText}>Enregistrer · {formatDigits(amount)} {currency.symbole} / mois</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -171,6 +177,7 @@ const createStyles = (c: Palette, compact: boolean) =>
     unit: { color: c.textMuted, fontSize: compact ? 18 : 22, fontWeight: "700" },
     spent: { color: c.textMuted, fontSize: 13, textAlign: "center" },
     error: { color: c.danger, fontSize: 14, textAlign: "center" },
+    suggestionsLabel: { color: c.textMuted, fontSize: 12, textAlign: "center" },
     suggestions: { flexDirection: "row", gap: 8, justifyContent: "center" },
     suggestion: {
       minHeight: 38,

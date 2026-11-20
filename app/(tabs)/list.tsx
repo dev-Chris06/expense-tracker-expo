@@ -21,11 +21,14 @@ import { formatCount, formatNet } from "@/utils/formatters";
 import { dayLabel, groupByDay, nextSortOrder, SORT_LABELS, type SortOrder, sortTransactions } from "@/utils/grouping";
 import { monthKey } from "@/utils/months";
 import { matchesQuery } from "@/utils/search";
+import { useCurrency } from "@/utils/currency";
 
 
 export default function ListScreen() {
   const router = useRouter();
   const colors = useColors();
+  // Redessine les montants quand la devise change.
+  useCurrency();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [rows, setRows] = useState<Transaction[]>([]);

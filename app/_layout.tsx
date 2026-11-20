@@ -12,6 +12,8 @@
  *   app/budget.tsx    → "/budget" (budget global du mois)
  *   app/categories.tsx → "/categories"
  *   app/category/[id].tsx → "/category/3" ou "/category/new"
+ *   app/currency.tsx  → "/currency" (choix de la devise)
+ *   app/recurring.tsx → "/recurring" (opérations récurrentes)
  *
  * <Stack> fournit une navigation en pile : la saisie, la modification et
  * les catégories s'empilent par-dessus les onglets. Le ThemeProvider aligne
@@ -23,21 +25,34 @@ import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "react-native";
 
 import { applyThemePreference, darkColors, lightColors } from "@/constants/theme";
-import { getThemePreference } from "@/db/settings";
+import { applyDueRecurrences } from "@/db/recurrences";
+import { getCurrencyCode, getThemePreference } from "@/db/settings";
+import { setCurrentCurrency } from "@/utils/currency";
 
-/** Applique le thème choisi dans les réglages avant le premier affichage. */
-function applySavedTheme(): boolean {
-  try {
-    applyThemePreference(getThemePreference());
-  } catch {
-    // Base illisible : on garde le thème du téléphone, les écrans
-    // afficheront eux-mêmes leur erreur de chargement.
+/**
+ * Avant le premier affichage : thème et devise choisis dans les réglages,
+ * puis opérations récurrentes arrivées à échéance.
+ */
+function applySavedSettings(): boolean {
+  // Chaque étape est indépendante : si la base est illisible, on garde le
+  // thème du téléphone et le franc CFA, et les écrans afficheront eux-mêmes
+  // leur erreur de chargement.
+  for (const step of [
+    () => applyThemePreference(getThemePreference()),
+    () => setCurrentCurrency(getCurrencyCode()),
+    () => applyDueRecurrences(),
+  ]) {
+    try {
+      step();
+    } catch {
+      // Voir plus haut.
+    }
   }
   return true;
 }
 
 export default function RootLayout() {
-  useState(applySavedTheme);
+  useState(applySavedSettings);
   const dark = useColorScheme() === "dark";
   const base = dark ? DarkTheme : DefaultTheme;
   const palette = dark ? darkColors : lightColors;
@@ -66,6 +81,8 @@ export default function RootLayout() {
         <Stack.Screen name="budget" options={{ headerShown: false, title: "Budget du mois" }} />
         <Stack.Screen name="categories" options={{ title: "Catégories" }} />
         <Stack.Screen name="category/[id]" options={{ title: "Catégorie" }} />
+        <Stack.Screen name="currency" options={{ title: "Devise" }} />
+        <Stack.Screen name="recurring" options={{ title: "Opérations récurrentes" }} />
       </Stack>
     </ThemeProvider>
   );

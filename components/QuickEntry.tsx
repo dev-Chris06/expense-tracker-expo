@@ -30,10 +30,12 @@ import { getCategoryUsage } from "@/db/transactions";
 import type { Category, Transaction, TransactionInput, TransactionType } from "@/types/transaction";
 import { buildCategoryGrid, type GridCell } from "@/utils/categoryGrid";
 import { takeCreatedCategory } from "@/utils/createdCategory";
+import { useCurrency } from "@/utils/currency";
 import { isValidISODate, todayISO, toISODate } from "@/utils/dateHelpers";
 import { UserFacingError } from "@/utils/errors";
 import { dayLabel } from "@/utils/grouping";
-import { formatDigits, type KeypadKey, pressKey } from "@/utils/keypad";
+import { formatDigits, type KeypadKey, pressKey, toKeypadText } from "@/utils/keypad";
+import { recurrenceLabel } from "@/utils/recurrence";
 import { validateTransactionInput } from "@/utils/validation";
 
 const USAGE_DAYS = 90;
@@ -43,7 +45,9 @@ interface QuickEntryProps {
   /** Type présélectionné pour un ajout (ignoré en modification). */
   initialType?: TransactionType;
   /** Peut lever une UserFacingError dont le message sera affiché. */
-  onSubmit: (value: TransactionInput, category: Category) => Promise<void>;
+  onSubmit: (value: TransactionInput, category: Category, repeatMonthly: boolean) => Promise<void>;
+  /** Propose « Chaque mois » (ajout uniquement). */
+  allowRepeat?: boolean;
   onClose: () => void;
   /** Affiche une corbeille dans l'en-tête (modification). */
   onDelete?: () => void;
@@ -61,15 +65,24 @@ function daysAgoISO(days: number): string {
   return toISODate(date);
 }
 
-export default function QuickEntry({ initialTransaction, initialType = "depense", onSubmit, onClose, onDelete }: QuickEntryProps) {
+export default function QuickEntry({
+  initialTransaction,
+  initialType = "depense",
+  onSubmit,
+  onClose,
+  onDelete,
+  allowRepeat,
+}: QuickEntryProps) {
   const router = useRouter();
   const colors = useColors();
   const { height } = useWindowDimensions();
   const compact = height < 720;
   const styles = useMemo(() => createStyles(colors, compact), [colors, compact]);
+  const currency = useCurrency();
 
   const [type, setType] = useState<TransactionType>(initialTransaction?.type ?? initialType);
-  const [amount, setAmount] = useState(initialTransaction ? String(initialTransaction.montant) : "");
+  const [amount, setAmount] = useState(initialTransaction ? toKeypadText(initialTransaction.montant) : "");
+  const [repeat, setRepeat] = useState(false);
   const [categoryId, setCategoryId] = useState<number | null>(initialTransaction?.categorieId ?? null);
   const [date, setDate] = useState(initialTransaction?.date ?? todayISO());
   const [note, setNote] = useState(initialTransaction?.note ?? "");
@@ -146,7 +159,7 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
     setError(null);
     setSaving(true);
     try {
-      await onSubmit({ ...validation.value, note: note.trim() || null }, category);
+      await onSubmit({ ...validation.value, note: note.trim() || null }, category, allowRepeat === true && repeat);
     } catch (e) {
       setError(e instanceof UserFacingError ? e.message : "Enregistrement impossible. Réessaie.");
     } finally {
@@ -219,7 +232,7 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.amountBox} accessible accessibilityLabel={`Montant : ${amount || "0"} francs CFA`}>
+        <View style={styles.amountBox} accessible accessibilityLabel={`Montant : ${amountLabel} ${currency.nom}`}>
           <Text style={styles.amountCaption}>{initialTransaction ? "Modifier le montant" : "Montant"}</Text>
           <Text
             style={[styles.amount, type === "revenu" && { color: colors.success }]}
@@ -229,7 +242,7 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
             {/* Pas de signe tant qu'aucun montant n'est tapé (« 0 F », pas « −0 F »). */}
             {amount === "" ? "" : type === "revenu" ? "+" : "−"}
             {amountLabel}
-            <Text style={styles.amountUnit}> F</Text>
+            <Text style={styles.amountUnit}> {currency.symbole}</Text>
           </Text>
         </View>
 
@@ -271,7 +284,26 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
             <Ionicons name="create-outline" size={16} color={colors.text} />
             <Text style={styles.chipText}>{note.trim() ? "Note ✓" : "Note"}</Text>
           </Pressable>
+          {allowRepeat && (
+            <Pressable
+              onPress={() => setRepeat((v) => !v)}
+              style={[styles.chip, repeat && { borderColor: accent, backgroundColor: `${accent}1A` }]}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: repeat }}
+              accessibilityLabel="Répéter chaque mois"
+            >
+              <Ionicons name="repeat" size={16} color={repeat ? accent : colors.text} />
+              <Text style={[styles.chipText, repeat && { color: accent }]} numberOfLines={1}>
+                Chaque mois
+              </Text>
+            </Pressable>
+          )}
         </View>
+        {allowRepeat && repeat && isValidISODate(date) && (
+          <Text style={styles.repeatHint}>
+            {recurrenceLabel(Number(date.slice(8)))}, ajoutée automatiquement. À gérer dans Réglages.
+          </Text>
+        )}
         {datePickerVisible && Platform.OS !== "web" && (
           <DateTimePicker
             value={parsedDate}
@@ -383,7 +415,7 @@ export default function QuickEntry({ initialTransaction, initialType = "depense"
           accessibilityRole="button"
           accessibilityState={{ disabled: saving, busy: saving }}
         >
-          <Text style={styles.submitText}>{saving ? "Enregistrement…" : `Enregistrer · ${amountLabel} F`}</Text>
+          <Text style={styles.submitText}>{saving ? "Enregistrement…" : `Enregistrer · ${amountLabel} ${currency.symbole}`}</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -450,15 +482,16 @@ const createStyles = (c: Palette, compact: boolean) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      gap: 6,
+      gap: 5,
       borderRadius: 20,
       borderWidth: 1,
       borderColor: c.border,
       backgroundColor: c.surface,
-      paddingHorizontal: 12,
+      paddingHorizontal: 8,
     },
     chipInput: { color: c.text, fontSize: 14 },
-    chipText: { color: c.text, fontSize: 13, fontWeight: "600" },
+    chipText: { color: c.text, fontSize: 13, fontWeight: "600", flexShrink: 1 },
+    repeatHint: { color: c.textMuted, fontSize: 12, textAlign: "center" },
     note: {
       borderWidth: 1,
       borderColor: c.border,

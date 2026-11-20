@@ -1,5 +1,6 @@
 import type { Transaction } from "@/types/transaction";
 import { formatDisplayDate } from "@/utils/dateHelpers";
+import { formatMajor } from "@/utils/formatters";
 
 /**
  * Prépare un texte pour la comparaison : minuscules, sans accents et sans
@@ -29,6 +30,7 @@ export function matchesQuery(transaction: Transaction, query: string): boolean {
     transaction.date,
     formatDisplayDate(transaction.date),
     String(transaction.montant),
+    formatMajor(transaction.montant),
   ];
   return fields.some((field) => normalizeForSearch(field).includes(needle));
 }

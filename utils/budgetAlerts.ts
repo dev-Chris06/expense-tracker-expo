@@ -24,7 +24,7 @@ export async function budgetAlertsAfterAdd(input: TransactionInput, category: Ca
     const usage = (await getBudgetUsage(month)).find((row) => row.categorieId === category.id);
     const spent = usage?.total ?? input.montant;
     const level = crossedLevel(spent - input.montant, spent, category.budget);
-    if (level) messages.push(budgetMessage(`Budget ${category.icone} ${category.nom}`, spent, category.budget, level));
+    if (level) messages.push(budgetMessage(`Budget ${category.nom}`, spent, category.budget, level));
   }
 
   const monthlyBudget = getMonthlyBudget();

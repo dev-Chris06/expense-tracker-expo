@@ -12,13 +12,16 @@
  * v3, les catégories vivent dans la table `categories` et se gèrent dans l'app.
  *
  * Choix de types SQLite (schéma actuel) :
- * - transactions.montant → INTEGER : le franc CFA n'a pas de centimes, et les
- *   entiers garantissent des totaux exacts (pas d'erreur d'arrondi).
+ * - transactions.montant → INTEGER dans la plus petite unité de la devise
+ *   choisie (francs CFA, centimes d'euro…) : les entiers garantissent des
+ *   totaux exacts (pas d'erreur d'arrondi). La devise est un réglage
+ *   (settings.devise, franc CFA par défaut).
  * - transactions.categorie_id → clé étrangère vers categories (le type
  *   dépense / revenu vient de la catégorie).
  * - transactions.date → TEXT ISO "YYYY-MM-DD" : se trie et se compare en texte.
  * - transactions.note → TEXT nullable.
  * - categories.icone → nom d'icône Ionicons (emoji avant la v4).
+ * - recurrences → opérations répétées chaque mois (loyer, forfait, salaire).
  */
 
 export const MIGRATIONS: readonly string[] = [
@@ -133,6 +136,22 @@ export const MIGRATIONS: readonly string[] = [
     WHEN icone = '🤝' THEN 'people-outline'
     ELSE 'pricetag-outline'
   END;
+  `,
+  // v5 — opérations récurrentes, ajoutées automatiquement chaque mois.
+  // - jour : jour du mois (1 à 31 ; ramené au dernier jour des mois courts).
+  // - dernier_mois : dernier mois "YYYY-MM" pour lequel l'opération a été
+  //   créée ; l'app crée les mois suivants dès que leur jour est arrivé.
+  // - active : 0 = en pause.
+  `
+  CREATE TABLE recurrences (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    montant INTEGER NOT NULL CHECK (montant > 0),
+    categorie_id INTEGER NOT NULL REFERENCES categories (id),
+    note TEXT,
+    jour INTEGER NOT NULL CHECK (jour BETWEEN 1 AND 31),
+    dernier_mois TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1))
+  );
   `,
 ];
 

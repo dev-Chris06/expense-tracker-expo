@@ -12,10 +12,13 @@ import { type Palette, useColors } from "@/constants/theme";
 import { getCategories } from "@/db/categories";
 import type { Category, TransactionType } from "@/types/transaction";
 import { formatAmount } from "@/utils/formatters";
+import { useCurrency } from "@/utils/currency";
 
 export default function CategoriesScreen() {
   const router = useRouter();
   const colors = useColors();
+  // Redessine les montants quand la devise change.
+  useCurrency();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [type, setType] = useState<TransactionType>("depense");

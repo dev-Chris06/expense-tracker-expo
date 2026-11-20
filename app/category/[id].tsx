@@ -24,7 +24,9 @@ import { type Palette, useColors } from "@/constants/theme";
 import { addCategory, getCategoryById, updateCategory } from "@/db/categories";
 import type { TransactionType } from "@/types/transaction";
 import { rememberCreatedCategory } from "@/utils/createdCategory";
+import { useCurrency } from "@/utils/currency";
 import { UserFacingError } from "@/utils/errors";
+import { toKeypadText } from "@/utils/keypad";
 import { MAX_CATEGORY_NAME, validateCategoryInput } from "@/utils/validation";
 
 export default function CategoryScreen() {
@@ -32,6 +34,7 @@ export default function CategoryScreen() {
   const router = useRouter();
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const currency = useCurrency();
 
   const isNew = id === "new";
   const fromEntry = isNew && from === "entry";
@@ -62,7 +65,7 @@ export default function CategoryScreen() {
         setNom(category.nom);
         setIcone(category.icone);
         setCouleur(category.couleur);
-        setBudgetText(category.budget === null ? "" : String(category.budget));
+        setBudgetText(category.budget === null ? "" : toKeypadText(category.budget));
         setMasquee(category.masquee);
       })
       .catch(() => {
@@ -176,10 +179,10 @@ export default function CategoryScreen() {
               style={styles.input}
               value={budgetText}
               onChangeText={setBudgetText}
-              placeholder="Ex. 50 000 (vide = aucun budget)"
+              placeholder={`Montant en ${currency.symbole} (vide = aucun budget)`}
               placeholderTextColor={colors.textMuted}
-              keyboardType="number-pad"
-              accessibilityLabel="Budget mensuel de la catégorie en francs CFA"
+              keyboardType={currency.decimales > 0 ? "decimal-pad" : "number-pad"}
+              accessibilityLabel={`Budget mensuel de la catégorie en ${currency.nom}`}
             />
           </>
         )}

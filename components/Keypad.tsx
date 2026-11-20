@@ -1,13 +1,15 @@
 /**
  * Pavé numérique intégré (saisie rapide, budget). Touche « 000 » pour les
- * gros montants, ⌫ efface un chiffre, appui long sur ⌫ efface tout.
+ * gros montants (ou « , » si la devise a des centimes), ⌫ efface un
+ * chiffre, appui long sur ⌫ efface tout.
  */
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { type Palette, useColors } from "@/constants/theme";
-import { KEYPAD_KEYS, type KeypadKey } from "@/utils/keypad";
+import { useCurrency } from "@/utils/currency";
+import { type KeypadKey, keypadKeys } from "@/utils/keypad";
 
 interface KeypadProps {
   onKey: (key: KeypadKey) => void;
@@ -16,15 +18,19 @@ interface KeypadProps {
   compact?: boolean;
 }
 
-const ROWS = [0, 3, 6, 9].map((start) => KEYPAD_KEYS.slice(start, start + 3));
 
 export default function Keypad({ onKey, onClear, compact }: KeypadProps) {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors, !!compact), [colors, compact]);
+  const { decimales } = useCurrency();
+  const rows = useMemo(() => {
+    const keys = keypadKeys(decimales);
+    return [0, 3, 6, 9].map((start) => keys.slice(start, start + 3));
+  }, [decimales]);
 
   return (
     <View style={styles.keypad}>
-      {ROWS.map((row, index) => (
+      {rows.map((row, index) => (
         <View key={index} style={styles.row}>
           {row.map((key) => (
             <Pressable
@@ -33,7 +39,7 @@ export default function Keypad({ onKey, onClear, compact }: KeypadProps) {
               onLongPress={key === "back" ? onClear : undefined}
               style={({ pressed }) => [styles.key, pressed && styles.pressed]}
               accessibilityRole="button"
-              accessibilityLabel={key === "back" ? "Effacer (appui long : tout effacer)" : key}
+              accessibilityLabel={key === "back" ? "Effacer (appui long : tout effacer)" : key === "," ? "Virgule" : key}
             >
               {key === "back" ? (
                 <Ionicons name="backspace-outline" size={26} color={colors.text} />

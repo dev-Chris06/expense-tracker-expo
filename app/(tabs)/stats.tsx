@@ -20,6 +20,7 @@ import {
   type MonthTotal,
 } from "@/db/transactions";
 import { formatAmount, formatNet, formatShort } from "@/utils/formatters";
+import { useCurrency } from "@/utils/currency";
 import {
   changePercent,
   daysForAverage,
@@ -37,6 +38,8 @@ const CHART_HEIGHT = 120;
 
 export default function StatsScreen() {
   const colors = useColors();
+  // Redessine les montants quand la devise change.
+  useCurrency();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [month, setMonth] = useState(monthKey());

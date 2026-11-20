@@ -14,15 +14,27 @@ Née d'un comparatif Expo vs Flutter : la version Flutter (dépôt
 - **Accueil** : solde du mois (revenus − dépenses), suivi des budgets
   (bouton « Définir mon budget du mois » s'il n'y en a pas), 5 dernières
   opérations.
-- **Saisie rapide** : pavé numérique intégré (touche « 000 », appui long
-  sur ⌫ pour tout effacer), catégories les plus utilisées en premier, date
-  « aujourd'hui » par défaut, note facultative (280 car.). La case
-  « ＋ Nouvelle » crée une catégorie et la sélectionne aussitôt. Le même écran
-  sert à modifier ou supprimer une opération.
+- **Devise au choix** : franc CFA par défaut, euro, dollar, naira, cedi,
+  dirham… (une devise pour toute l'app). Les montants sont stockés en
+  entiers dans la plus petite unité de la devise ; changer de devise garde
+  les chiffres tapés (pas de taux de change).
+- **Saisie rapide** : pavé numérique intégré (touche « 000 », ou « , » pour
+  les devises à centimes ; appui long sur ⌫ pour tout effacer), catégories
+  les plus utilisées en premier, date « aujourd'hui » par défaut, note
+  facultative (280 car.), option « Chaque mois ». La case « ＋ Nouvelle »
+  crée une catégorie et la sélectionne aussitôt. Le même écran sert à
+  modifier ou supprimer une opération.
+- **Opérations récurrentes** : loyer, forfait, salaire… ajoutés tout seuls
+  à leur jour chaque mois (le 31 devient le 30 ou le 28 des mois courts),
+  avec rattrapage des mois manqués ; pause, reprise, suppression.
+- **Mes données** : sauvegarde complète dans un fichier JSON partagé où
+  l'on veut (Drive, WhatsApp…), restauration après vérification complète du
+  fichier (tout ou rien), export CSV pour Excel / Google Sheets (« ; »,
+  virgule décimale, dépenses en négatif).
 - **Catégories personnalisables** : création, renommage, icône vectorielle,
   couleur, masquage (les opérations passées sont conservées).
 - **Budgets** : budget global du mois (écran dédié avec pavé numérique et
-  montants suggérés) et budget par catégorie ; barres
+  montants suggérés d'après les 3 derniers mois) et budget par catégorie ; barres
   orange à 80 %, rouges à 100 %, alerte quand une dépense franchit un seuil.
 - **Opérations** : groupées par jour avec le total du jour, navigation par
   mois, recherche dans tous les mois (sans accents ni casse), filtres
@@ -32,7 +44,8 @@ Née d'un comparatif Expo vs Flutter : la version Flutter (dépôt
   par jour, évolution par rapport au mois précédent, répartition par
   catégorie, graphique des 6 derniers mois.
 - **Réglages** : thème (comme le téléphone, clair, sombre), budget du mois,
-  catégories, version et recherche de mise à jour.
+  devise, opérations récurrentes, catégories, sauvegarde / restauration /
+  export CSV, version et recherche de mise à jour.
 - **Icône** : portefeuille marqué d'un « F » (sources SVG et commande de
   génération dans `assets/icon/`).
 - **Mises à jour** : l'accueil signale une nouvelle version publiée ;
@@ -43,19 +56,22 @@ que l'utilisateur saisit.
 
 ## Stack
 
-Expo SDK 58 · React Native 0.88 · expo-router · expo-sqlite · @expo/vector-icons (Ionicons) · TypeScript strict · Jest
+Expo SDK 58 · React Native 0.88 · expo-router · expo-sqlite · expo-file-system · expo-sharing · expo-document-picker · @expo/vector-icons (Ionicons) · TypeScript strict · Jest
 
 ```
 app/          écrans (routing par fichiers) : (tabs)/ = onglets index, list,
-              stats, settings ; add, edit/[id], categories, category/[id]
+              stats, settings ; add, edit/[id], budget, categories,
+              category/[id], currency, recurring
 components/   TabBar, QuickEntry (saisie), TransactionRow, CategoryIcon,
               MonthNav, Chip, BudgetBar, mises à jour
-constants/    couleurs et icônes de catégories, palettes clair/sombre
+constants/    devises, couleurs et icônes de catégories, palettes clair/sombre
 db/           connexion, migrations (PRAGMA user_version), transactions,
-              catégories, réglages
-utils/        validation, formatage, dates, mois, pavé numérique, regroupement
-              par jour, recherche, budgets, mises à jour
-__tests__/    tests unitaires + test des migrations sur SQLite réel (node:sqlite)
+              catégories, récurrences, réglages (devise), sauvegarde
+utils/        validation, formatage, devise en cours, dates, mois, pavé
+              numérique, récurrences, sauvegarde, CSV, fichiers partagés,
+              regroupement par jour, recherche, budgets, mises à jour
+__tests__/    tests unitaires + migrations, devise, récurrences et
+              restauration sur SQLite réel (node:sqlite)
 ```
 
 ## Développement

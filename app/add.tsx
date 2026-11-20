@@ -2,6 +2,7 @@ import { Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import QuickEntry from "@/components/QuickEntry";
+import { addRecurrence } from "@/db/recurrences";
 import { addTransaction } from "@/db/transactions";
 import { budgetAlertsAfterAdd } from "@/utils/budgetAlerts";
 
@@ -14,8 +15,19 @@ export default function AddScreen() {
     <QuickEntry
       initialType={type === "revenu" ? "revenu" : "depense"}
       onClose={close}
-      onSubmit={async (value, category) => {
+      allowRepeat
+      onSubmit={async (value, category, repeatMonthly) => {
         await addTransaction(value);
+        if (repeatMonthly) {
+          // Ce mois-ci vient d'être saisi : les suivants seront ajoutés seuls.
+          await addRecurrence({
+            montant: value.montant,
+            categorieId: value.categorieId,
+            note: value.note,
+            jour: Number(value.date.slice(8)),
+            dernierMois: value.date.slice(0, 7),
+          });
+        }
         // Une alerte ratée ne doit pas faire croire que l'ajout a échoué.
         const alerts = await budgetAlertsAfterAdd(value, category).catch(() => []);
         // Retour à l'onglet d'origine, qui se recharge seul.

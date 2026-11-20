@@ -13,6 +13,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import TransactionRow from "@/components/TransactionRow";
 import { UpdateBanner } from "@/components/Updates";
 import { type Palette, useColors } from "@/constants/theme";
+import { applyDueRecurrences } from "@/db/recurrences";
 import { getMonthlyBudget } from "@/db/settings";
 import {
   type CategoryTotal,
@@ -24,14 +25,16 @@ import {
 import type { Transaction } from "@/types/transaction";
 import { formatCount, formatNet, formatShort } from "@/utils/formatters";
 import { formatMonthLabel, greeting, monthKey } from "@/utils/months";
+import { useCurrency } from "@/utils/currency";
 
 const EMPTY_SUMMARY: MonthSummary = { depenses: 0, revenus: 0, solde: 0, count: 0 };
 const RECENT_COUNT = 5;
 
-
 export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
+  // Redessine les montants quand la devise change.
+  useCurrency();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [summary, setSummary] = useState<MonthSummary>(EMPTY_SUMMARY);
@@ -46,6 +49,12 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
+      try {
+        // Opérations récurrentes dont le jour est arrivé depuis la dernière visite.
+        applyDueRecurrences();
+      } catch {
+        // Sans gravité : réessayé au prochain affichage.
+      }
       Promise.all([getMonthSummary(month), getRecentTransactions(RECENT_COUNT), getBudgetUsage(month)])
         .then(([monthSummary, latest, usage]) => {
           if (!active) return;

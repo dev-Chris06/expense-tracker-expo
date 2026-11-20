@@ -13,7 +13,7 @@ export interface Category {
   /** Masquée : absente des choix du formulaire, ses opérations restent. */
   masquee: boolean;
   position: number;
-  /** Budget mensuel en FCFA (dépenses uniquement), null si aucun. */
+  /** Budget mensuel, dans la plus petite unité de la devise (dépenses uniquement), null si aucun. */
   budget: number | null;
 }
 
@@ -22,7 +22,7 @@ export type CategoryInput = Pick<Category, "nom" | "type" | "couleur" | "icone" 
 /** Une opération avec les informations de sa catégorie. */
 export interface Transaction {
   id: number;
-  /** Montant en FCFA, toujours positif : le sens vient du type. */
+  /** Montant dans la plus petite unité de la devise (francs CFA, centimes…), toujours positif : le sens vient du type. */
   montant: number;
   categorieId: number;
   /** Date au format ISO "YYYY-MM-DD" */
