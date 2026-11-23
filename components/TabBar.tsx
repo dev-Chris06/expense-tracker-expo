@@ -46,7 +46,15 @@ export default function TabBar({ state, emitter, navigateToTab, insets }: Bottom
         accessibilityLabel={config.label}
       >
         <Ionicons name={focused ? config.iconActive : config.icon} size={23} color={color} />
-        <Text style={[styles.label, { color }, focused && styles.labelActive]}>{config.label}</Text>
+        {/* Texte agrandi limité ici (comme les apps Android) : sinon « Opérations » se coupe en deux. */}
+        <Text
+          style={[styles.label, { color }, focused && styles.labelActive]}
+          numberOfLines={1}
+          maxFontSizeMultiplier={1.2}
+          adjustsFontSizeToFit
+        >
+          {config.label}
+        </Text>
       </Pressable>
     );
   };

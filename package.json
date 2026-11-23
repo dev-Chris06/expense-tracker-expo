@@ -1,7 +1,7 @@
 {
   "name": "depenses-perso",
   "main": "index.ts",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@react-native-community/datetimepicker": "9.2.1",

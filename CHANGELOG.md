@@ -4,6 +4,17 @@ Chaque section est reprise telle quelle comme description de la release
 GitHub correspondante (voir `.github/workflows/build-apk.yml`). Toutes les
 versions restent téléchargeables sur la page Releases du dépôt.
 
+## 1.5.2 — 23/11/2026
+
+- Rappel du soir : supprimer ou déplacer la seule opération du jour fait
+  revenir le rappel de ce soir tout de suite.
+- Sauvegardes : le nom du dossier s'affiche sans « / » en trop.
+- Thème sombre : les interrupteurs (rappel, « Répéter chaque mois ») sont
+  de nouveau visibles.
+- Texte agrandi dans Android : toutes les catégories restent visibles au-dessus
+  du pavé, et « Opérations » ne se coupe plus en deux dans la barre du bas.
+- Devise : l'écran se referme tout seul après le changement.
+
 ## 1.5.1 — 20/11/2026
 
 - Accueil : « Aujourd’hui · 2 opérations · −1 500 F » remplace « Bonjour /

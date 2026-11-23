@@ -47,8 +47,11 @@ export default function CurrencyScreen() {
   const apply = (next: Currency) => {
     try {
       changeCurrency(current, next);
-      setCurrentCurrency(next.code);
+      // Revenir d'abord, puis redessiner l'app dans la nouvelle devise :
+      // dans l'autre ordre, l'écran restait affiché après le changement.
       if (router.canGoBack()) router.back();
+      else router.replace("/settings");
+      setCurrentCurrency(next.code);
     } catch {
       Alert.alert("Changement impossible", "La devise n'a pas été changée. Réessaie.");
     }

@@ -46,7 +46,9 @@ export function folderLabel(uri: string): string {
   } catch {
     // Laisser tel quel.
   }
-  const path = decoded.includes(":") ? decoded.slice(decoded.indexOf(":") + 1) : decoded;
+  const raw = decoded.includes(":") ? decoded.slice(decoded.indexOf(":") + 1) : decoded;
+  // Le chemin d'un dossier se termine souvent par « / » : inutile à l'écran.
+  const path = raw.replace(/\/+$/, "");
   return path === "" ? "Mémoire du téléphone" : path;
 }
 

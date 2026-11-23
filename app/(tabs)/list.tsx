@@ -22,6 +22,7 @@ import { formatCount, formatNet } from "@/utils/formatters";
 import { dayLabel, groupByDay, type SortOrder, sortTransactions } from "@/utils/grouping";
 import { monthKey } from "@/utils/months";
 import { matchesQuery } from "@/utils/search";
+import { syncRemindersQuietly } from "@/utils/reminders";
 import { useCurrency } from "@/utils/currency";
 
 export default function ListScreen() {
@@ -91,7 +92,11 @@ export default function ListScreen() {
   const remove = (transaction: Transaction) =>
     confirmDeleteTransaction(transaction, () => {
       deleteTransaction(transaction.id)
-        .then(refresh)
+        .then(() => {
+          refresh();
+          // Plus rien noté aujourd'hui ? Le rappel de ce soir doit revenir.
+          syncRemindersQuietly();
+        })
         .catch(() => setError("Suppression impossible."));
     });
 

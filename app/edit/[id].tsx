@@ -8,6 +8,7 @@ import { type Palette, useColors } from "@/constants/theme";
 import { deleteTransaction, getTransactionById, updateTransaction } from "@/db/transactions";
 import type { Transaction } from "@/types/transaction";
 import { UserFacingError } from "@/utils/errors";
+import { syncRemindersQuietly } from "@/utils/reminders";
 
 export default function EditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -71,7 +72,10 @@ export default function EditScreen() {
       onDelete={() =>
         confirmDeleteTransaction(transaction, () => {
           deleteTransaction(transaction.id)
-            .then(close)
+            .then(() => {
+              syncRemindersQuietly();
+              close();
+            })
             .catch(() => Alert.alert("Suppression impossible", "Réessaie dans un instant."));
         })
       }
@@ -80,6 +84,8 @@ export default function EditScreen() {
         if (!updated) {
           throw new UserFacingError("Cette opération n’existe plus : elle a peut-être été supprimée.");
         }
+        // La date a pu changer (aujourd'hui ↔ un autre jour) : rappel à recalculer.
+        syncRemindersQuietly();
         close();
       }}
     />

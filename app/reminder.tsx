@@ -84,7 +84,7 @@ export default function ReminderScreen() {
           value={settings.enabled}
           onValueChange={(value) => void toggle(value)}
           trackColor={{ true: colors.primary, false: colors.border }}
-          thumbColor={colors.surface}
+          thumbColor="#FFFFFF"
           accessibilityLabel="Rappel du soir"
         />
       </View>

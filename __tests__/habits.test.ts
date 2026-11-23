@@ -73,6 +73,9 @@ describe("automatic backup", () => {
       folderLabel("content://com.android.externalstorage.documents/tree/primary%3ADocuments%2FD%C3%A9penses%20Perso"),
     ).toBe("Documents/Dépenses Perso");
     expect(folderLabel("content://com.android.externalstorage.documents/tree/primary%3A")).toBe("Mémoire du téléphone");
+    expect(folderLabel("content://com.android.externalstorage.documents/tree/primary%3ADepenses/")).toBe("Depenses");
+    expect(folderLabel("content://com.android.externalstorage.documents/tree/primary%3ADepenses%2F")).toBe("Depenses");
+    expect(folderLabel("content://com.android.externalstorage.documents/tree/primary%3A/")).toBe("Mémoire du téléphone");
   });
 
   it("formats date and time", () => {

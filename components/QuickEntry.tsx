@@ -76,8 +76,10 @@ export default function QuickEntry({
 }: QuickEntryProps) {
   const router = useRouter();
   const colors = useColors();
-  const { height } = useWindowDimensions();
-  const compact = height < 720;
+  const { height, fontScale } = useWindowDimensions();
+  // Petit écran, ou texte agrandi dans les réglages Android : même effet,
+  // moins de place pour la grille. On resserre alors le pavé numérique.
+  const compact = height / Math.max(fontScale, 1) < 720;
   const styles = useMemo(() => createStyles(colors, compact), [colors, compact]);
   const currency = useCurrency();
 
@@ -309,7 +311,7 @@ export default function QuickEntry({
               value={repeat}
               onValueChange={setRepeat}
               trackColor={{ true: accent, false: colors.border }}
-              thumbColor={colors.surface}
+              thumbColor="#FFFFFF"
               accessibilityElementsHidden
               importantForAccessibility="no"
             />
