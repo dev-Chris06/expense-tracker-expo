@@ -47,8 +47,30 @@ export async function askNotificationPermission(): Promise<boolean> {
   return status.granted;
 }
 
-/** Reprogramme les rappels des prochains jours d'après les réglages. */
-export async function syncReminders(now: Date = new Date()): Promise<void> {
+/** Un identifiant par soir : reprogrammer le même soir remplace, sans doublon. */
+export function reminderId(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `rappel-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+let queue: Promise<void> = Promise.resolve();
+
+/**
+ * Reprogramme les rappels des prochains jours d'après les réglages.
+ * Les appels passent l'un après l'autre : deux appels simultanés (ouverture
+ * de l'app + restauration, par exemple) programmaient chacun leurs rappels,
+ * d'où deux notifications le même soir.
+ */
+export function syncReminders(now: Date = new Date()): Promise<void> {
+  const run = queue.then(
+    () => syncNow(now),
+    () => syncNow(now),
+  );
+  queue = run.catch(() => undefined);
+  return run;
+}
+
+async function syncNow(now: Date): Promise<void> {
   await Notifications.cancelAllScheduledNotificationsAsync();
   const settings = getReminderSettings();
   if (!settings.enabled || !(await notificationsAllowed())) return;
@@ -57,6 +79,7 @@ export async function syncReminders(now: Date = new Date()): Promise<void> {
   const skipToday = await hasTransactionOn(todayISO());
   for (const date of reminderDates(now, settings, skipToday)) {
     await Notifications.scheduleNotificationAsync({
+      identifier: reminderId(date),
       content: { title: REMINDER_TITLE, body: REMINDER_BODY, data: { url: REMINDER_URL } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date, channelId: CHANNEL_ID },
     });

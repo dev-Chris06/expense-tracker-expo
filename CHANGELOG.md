@@ -6,6 +6,8 @@ versions restent téléchargeables sur la page Releases du dépôt.
 
 ## 1.5.2 — 23/11/2026
 
+- Rappel du soir : il pouvait arriver en double (deux notifications le même
+  soir) ; corrigé.
 - Rappel du soir : supprimer ou déplacer la seule opération du jour fait
   revenir le rappel de ce soir tout de suite.
 - Sauvegardes : le nom du dossier s'affiche sans « / » en trop.
