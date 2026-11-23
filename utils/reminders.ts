@@ -9,7 +9,13 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
-import { getReminderSettings } from "@/db/settings";
+import {
+  DEFAULT_REMINDER_TIME,
+  getReminderSettings,
+  markReminderOffered,
+  setReminderEnabled,
+  setReminderTime,
+} from "@/db/settings";
 import { hasTransactionOn } from "@/db/transactions";
 import { todayISO } from "@/utils/dateHelpers";
 import { reminderDates } from "@/utils/reminderSchedule";
@@ -89,4 +95,27 @@ async function syncNow(now: Date): Promise<void> {
 /** Même chose, sans jamais faire échouer l'appelant (rappel = bonus). */
 export function syncRemindersQuietly(): void {
   syncReminders().catch(() => undefined);
+}
+
+/**
+ * « Oui » au rappel du soir (carte de l'accueil, écran de bienvenue) :
+ * demande l'autorisation, puis active le rappel à l'heure par défaut.
+ * Retourne false si le téléphone bloque les notifications ; la question
+ * est alors notée comme posée, pour ne pas la reposer en boucle.
+ */
+export async function enableDefaultReminder(): Promise<boolean> {
+  let granted = false;
+  try {
+    granted = await askNotificationPermission();
+  } catch {
+    granted = false;
+  }
+  if (!granted) {
+    markReminderOffered();
+    return false;
+  }
+  setReminderTime(DEFAULT_REMINDER_TIME.hour, DEFAULT_REMINDER_TIME.minute);
+  setReminderEnabled(true);
+  syncRemindersQuietly();
+  return true;
 }

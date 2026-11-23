@@ -187,3 +187,31 @@ export function getShareReminderSnooze(): string | null {
 export function snoozeShareReminder(until: string): void {
   setSetting(SHARE_SNOOZE_KEY, until);
 }
+
+/* ---------- Accueil du premier lancement ---------- */
+
+const WELCOME_DONE_KEY = `${DEVICE_SETTING_PREFIX}accueil_vu`;
+const FIRST_STEPS_KEY = `${DEVICE_SETTING_PREFIX}premiers_pas`;
+
+/** Les écrans d'accueil ont-ils déjà été vus (ou passés) sur ce téléphone ? */
+export function isWelcomeDone(): boolean {
+  return getSetting(WELCOME_DONE_KEY) === "1";
+}
+
+/**
+ * Fin de l'accueil. `firstSteps` : afficher ensuite les aides de l'accueil
+ * (flèche vers ＋, puis « Bravo » après la première opération). Pas après
+ * une restauration : la personne connaît déjà l'app.
+ */
+export function markWelcomeDone(firstSteps: boolean): void {
+  setSetting(WELCOME_DONE_KEY, "1");
+  setSetting(FIRST_STEPS_KEY, firstSteps ? "1" : null);
+}
+
+export function hasFirstStepsPending(): boolean {
+  return getSetting(FIRST_STEPS_KEY) === "1";
+}
+
+export function finishFirstSteps(): void {
+  setSetting(FIRST_STEPS_KEY, null);
+}

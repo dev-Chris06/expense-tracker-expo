@@ -9,12 +9,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { UpdateFooter } from "@/components/Updates";
 import { applyThemePreference, type Palette, useColors } from "@/constants/theme";
-import { countTransactions, restoreBackup } from "@/db/backup";
-import { applyDueRecurrences, countActiveRecurrences } from "@/db/recurrences";
+import { countActiveRecurrences } from "@/db/recurrences";
 import {
   type AutoBackupState,
   getAutoBackupState,
-  getCurrencyCode,
   getMonthlyBudget,
   getReminderSettings,
   getThemePreference,
@@ -22,14 +20,14 @@ import {
   setThemePreference,
   type ThemePreference,
 } from "@/db/settings";
-import { setCurrentCurrency, useCurrency } from "@/utils/currency";
+import { useCurrency } from "@/utils/currency";
 import { folderLabel } from "@/utils/autoBackup";
-import { pickBackup, shareCsv } from "@/utils/dataFiles";
-import { formatDateTime, formatDisplayDate } from "@/utils/dateHelpers";
+import { shareCsv } from "@/utils/dataFiles";
+import { formatDateTime } from "@/utils/dateHelpers";
 import { UserFacingError } from "@/utils/errors";
-import { formatAmount, formatCount } from "@/utils/formatters";
+import { formatAmount } from "@/utils/formatters";
 import { formatReminderTime } from "@/utils/reminderSchedule";
-import { syncRemindersQuietly } from "@/utils/reminders";
+import { chooseAndRestore } from "@/utils/restoreFlow";
 
 type FileAction = "restore" | "csv";
 
@@ -114,45 +112,11 @@ export default function SettingsScreen() {
       .finally(() => setBusy(null));
   };
 
-  const restore = async () => {
-    const backup = await pickBackup();
-    if (backup === null) return;
-    const current = countTransactions();
-    const date = formatDisplayDate(backup.creeLe.slice(0, 10));
-    Alert.alert(
-      "Restaurer cette sauvegarde ?",
-      `Sauvegarde du ${date} : ${formatCount(backup.transactions.length)}.\n\n` +
-        `Elle remplacera tout ce qu'il y a sur ce téléphone (${formatCount(current)}, catégories, budgets et réglages).`,
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Restaurer",
-          style: "destructive",
-          onPress: () => {
-            try {
-              restoreBackup(backup);
-            } catch {
-              Alert.alert("Restauration impossible", "Rien n'a été modifié : tes données actuelles sont intactes.");
-              return;
-            }
-            const preference = getThemePreference();
-            setTheme(preference);
-            applyThemePreference(preference);
-            setCurrentCurrency(getCurrencyCode());
-            try {
-              applyDueRecurrences();
-            } catch {
-              // Réessayé au prochain affichage de l'accueil.
-            }
-            syncRemindersQuietly();
-            reload();
-            Alert.alert("Sauvegarde restaurée", `${formatCount(backup.transactions.length)} retrouvée${backup.transactions.length > 1 ? "s" : ""}.`);
-          },
-        },
-      ],
-    );
-  };
-
+  const restore = () =>
+    chooseAndRestore(() => {
+      setTheme(getThemePreference());
+      reload();
+    });
 
   const chooseTheme = (value: ThemePreference) => {
     setTheme(value);

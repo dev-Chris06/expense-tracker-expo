@@ -1,7 +1,7 @@
 /**
  * Choix de la carte de conseil affichée sur l'accueil (fonction pure).
  */
-export type Tip = "reminder" | "share" | null;
+export type Tip = "start" | "firstDone" | "reminder" | "share" | null;
 
 const DAY = 24 * 60 * 60 * 1000;
 /** En dessous, pas grand-chose à perdre : on ne dérange pas. */
@@ -12,6 +12,8 @@ const SHARE_EVERY_DAYS = 30;
 export const SNOOZE_DAYS = 14;
 
 export function pickTip(input: {
+  /** Nouvel utilisateur, accueil terminé : aides des premiers pas. */
+  firstSteps?: boolean;
   reminderOffered: boolean;
   reminderEnabled: boolean;
   operations: number;
@@ -19,6 +21,8 @@ export function pickTip(input: {
   snoozedUntil: string | null;
   now: Date;
 }): Tip {
+  // Premiers pas : d'abord « touche ＋ », puis « bravo » une fois la première opération notée.
+  if (input.firstSteps) return input.operations === 0 ? "start" : "firstDone";
   if (!input.reminderOffered && !input.reminderEnabled) return "reminder";
   const now = input.now.getTime();
   const sharedLongAgo =

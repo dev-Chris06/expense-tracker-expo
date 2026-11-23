@@ -98,6 +98,12 @@ describe("home tip", () => {
     expect(pickTip({ ...base, reminderOffered: true, reminderEnabled: false })).toBeNull();
   });
 
+  it("guides a new user to the first operation, then congratulates once", () => {
+    expect(pickTip({ ...base, firstSteps: true, operations: 0, reminderOffered: false })).toBe("start");
+    expect(pickTip({ ...base, firstSteps: true, operations: 1 })).toBe("firstDone");
+    expect(pickTip({ ...base, firstSteps: false, operations: 0, lastShared: null })).toBeNull();
+  });
+
   it("asks to send a backup off the phone every 30 days, once there is data to lose", () => {
     expect(pickTip(base)).toBeNull();
     expect(pickTip({ ...base, lastShared: null })).toBe("share");

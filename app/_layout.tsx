@@ -31,11 +31,19 @@ import { applyThemePreference, darkColors, lightColors } from "@/constants/theme
 import { findCurrency } from "@/constants/currencies";
 import { countTransactions } from "@/db/backup";
 import { applyDueRecurrences } from "@/db/recurrences";
-import { changeCurrency, getCurrencyCode, getThemePreference, hasCurrencySetting } from "@/db/settings";
+import {
+  changeCurrency,
+  getCurrencyCode,
+  getThemePreference,
+  hasCurrencySetting,
+  isWelcomeDone,
+  markWelcomeDone,
+} from "@/db/settings";
 import { setCurrentCurrency } from "@/utils/currency";
 import { runAutoBackupIfDue } from "@/utils/autoBackup";
 import { detectLocalCurrency } from "@/utils/localCurrency";
 import { REMINDER_URL, syncRemindersQuietly } from "@/utils/reminders";
+import { setWelcomePending, shouldShowWelcome, useWelcomePending } from "@/utils/welcome";
 
 // Rappel reçu pendant que l'app est ouverte : affiché quand même.
 Notifications.setNotificationHandler({
@@ -97,6 +105,20 @@ function chooseFirstCurrency(): void {
 }
 
 /**
+ * Écrans d'accueil pour une app neuve. Une app déjà utilisée (mise à jour
+ * depuis une ancienne version) est marquée « accueil vu » une fois pour toutes.
+ */
+function decideWelcome(): void {
+  const welcomeDone = isWelcomeDone();
+  const operations = countTransactions();
+  if (shouldShowWelcome({ welcomeDone, operations })) {
+    setWelcomePending(true);
+  } else if (!welcomeDone) {
+    markWelcomeDone(false);
+  }
+}
+
+/**
  * Avant le premier affichage : thème et devise (celle du pays au premier
  * lancement), puis opérations récurrentes arrivées à échéance.
  */
@@ -109,6 +131,7 @@ function applySavedSettings(): boolean {
     chooseFirstCurrency,
     () => setCurrentCurrency(getCurrencyCode()),
     () => applyDueRecurrences(),
+    decideWelcome,
   ]) {
     try {
       step();
@@ -122,6 +145,7 @@ function applySavedSettings(): boolean {
 export default function RootLayout() {
   useState(applySavedSettings);
   useAppLifecycle();
+  const welcome = useWelcomePending();
   const dark = useColorScheme() === "dark";
   const base = dark ? DarkTheme : DefaultTheme;
   const palette = dark ? darkColors : lightColors;
@@ -141,19 +165,26 @@ export default function RootLayout() {
     <ThemeProvider value={theme}>
       <StatusBar style="auto" />
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: "Accueil" }} />
-        <Stack.Screen
-          name="add"
-          options={{ headerShown: false, title: "Nouvelle opération", animation: "slide_from_bottom" }}
-        />
-        <Stack.Screen name="edit/[id]" options={{ headerShown: false, title: "Modifier" }} />
-        <Stack.Screen name="budget" options={{ headerShown: false, title: "Budget du mois" }} />
-        <Stack.Screen name="categories" options={{ title: "Catégories" }} />
-        <Stack.Screen name="category/[id]" options={{ title: "Catégorie" }} />
+        {/* App neuve : d'abord les écrans d'accueil, le reste est inaccessible. */}
+        <Stack.Protected guard={welcome}>
+          <Stack.Screen name="welcome" options={{ headerShown: false, title: "Bienvenue" }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!welcome}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: "Accueil" }} />
+          <Stack.Screen
+            name="add"
+            options={{ headerShown: false, title: "Nouvelle opération", animation: "slide_from_bottom" }}
+          />
+          <Stack.Screen name="edit/[id]" options={{ headerShown: false, title: "Modifier" }} />
+          <Stack.Screen name="budget" options={{ headerShown: false, title: "Budget du mois" }} />
+          <Stack.Screen name="categories" options={{ title: "Catégories" }} />
+          <Stack.Screen name="category/[id]" options={{ title: "Catégorie" }} />
+          <Stack.Screen name="recurring" options={{ title: "Opérations récurrentes" }} />
+          <Stack.Screen name="reminder" options={{ title: "Rappel du soir" }} />
+          <Stack.Screen name="auto-backup" options={{ title: "Sauvegarde" }} />
+        </Stack.Protected>
+        {/* Ouverte depuis les Réglages ou depuis l'accueil (écran « Ta devise »). */}
         <Stack.Screen name="currency" options={{ title: "Devise" }} />
-        <Stack.Screen name="recurring" options={{ title: "Opérations récurrentes" }} />
-        <Stack.Screen name="reminder" options={{ title: "Rappel du soir" }} />
-        <Stack.Screen name="auto-backup" options={{ title: "Sauvegarde" }} />
       </Stack>
     </ThemeProvider>
   );

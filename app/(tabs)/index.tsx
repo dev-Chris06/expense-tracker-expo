@@ -188,7 +188,7 @@ export default function HomeScreen() {
               />
             ))
           ) : (
-            <Text style={styles.muted}>Aucune opération pour le moment. Touche ＋ pour ajouter ta première dépense.</Text>
+            <Text style={styles.muted}>Aucune opération pour le moment.</Text>
           )}
         </View>
       </ScrollView>

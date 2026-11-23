@@ -1,5 +1,7 @@
 /**
  * Une carte de conseil à la fois sur l'accueil :
+ * 0. Premiers pas (nouvel utilisateur) : « Touche ＋ … », puis « Bravo »
+ *    après la première opération ;
  * 1. « Un rappel le soir ? » tant que l'utilisateur n'a pas répondu ;
  *    la fenêtre de permission d'Android n'apparaît qu'après « Oui ».
  * 2. « Mets tes données à l'abri » quand il y a des données à perdre et
@@ -14,19 +16,19 @@ import { type Palette, useColors } from "@/constants/theme";
 import { countTransactions } from "@/db/backup";
 import {
   DEFAULT_REMINDER_TIME,
+  finishFirstSteps,
   getLastSharedBackup,
   getReminderSettings,
   getShareReminderSnooze,
+  hasFirstStepsPending,
   markReminderOffered,
-  setReminderEnabled,
-  setReminderTime,
   snoozeShareReminder,
   wasReminderOffered,
 } from "@/db/settings";
 import { shareBackup } from "@/utils/dataFiles";
 import { pickTip, SNOOZE_DAYS, type Tip } from "@/utils/homeTips";
 import { formatReminderTime } from "@/utils/reminderSchedule";
-import { askNotificationPermission, syncRemindersQuietly } from "@/utils/reminders";
+import { enableDefaultReminder } from "@/utils/reminders";
 
 export default function HomeTips() {
   const colors = useColors();
@@ -39,6 +41,7 @@ export default function HomeTips() {
       const reminder = getReminderSettings();
       setTip(
         pickTip({
+          firstSteps: hasFirstStepsPending(),
           reminderOffered: wasReminderOffered(),
           reminderEnabled: reminder.enabled,
           operations: countTransactions(),
@@ -56,13 +59,9 @@ export default function HomeTips() {
   const acceptReminder = async () => {
     setBusy(true);
     try {
-      if (await askNotificationPermission()) {
-        setReminderTime(DEFAULT_REMINDER_TIME.hour, DEFAULT_REMINDER_TIME.minute);
-        setReminderEnabled(true);
-        syncRemindersQuietly();
+      if (await enableDefaultReminder()) {
         Alert.alert("C’est noté", `Rappel chaque soir à ${formatReminderTime(DEFAULT_REMINDER_TIME)}. L’heure se change dans Réglages.`);
       } else {
-        markReminderOffered();
         Alert.alert(
           "Notifications bloquées",
           "Le téléphone n’autorise pas les notifications de l’app. Tu peux les activer dans ses réglages, puis le rappel dans Réglages › Rappel du soir.",
@@ -72,8 +71,6 @@ export default function HomeTips() {
           ],
         );
       }
-    } catch {
-      markReminderOffered();
     } finally {
       setBusy(false);
       refresh();
@@ -100,7 +97,43 @@ export default function HomeTips() {
       });
   };
 
+  const closeFirstSteps = () => {
+    try {
+      finishFirstSteps();
+    } catch {
+      // Sans gravité : la carte reviendra.
+    }
+    refresh();
+  };
+
   if (tip === null) return null;
+
+  if (tip === "start" || tip === "firstDone") {
+    const start = tip === "start";
+    return (
+      <View style={styles.card}>
+        <View style={styles.row}>
+          <View style={styles.icon}>
+            <Ionicons name={start ? "arrow-down" : "checkmark-done"} size={22} color={colors.primary} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.title}>{start ? "C’est parti !" : "Bravo, ta première opération est notée"}</Text>
+            <Text style={styles.text}>
+              {start
+                ? "Touche le bouton ＋ en bas de l’écran pour noter ta première dépense."
+                : "Une erreur ? Touche l’opération dans « Récentes » pour la modifier ou la supprimer."}
+            </Text>
+          </View>
+        </View>
+        {!start && (
+          <Pressable onPress={closeFirstSteps} style={styles.primary} accessibilityRole="button">
+            <Text style={styles.primaryText}>Compris</Text>
+          </Pressable>
+        )}
+      </View>
+    );
+  }
+
   const reminder = tip === "reminder";
 
   return (
