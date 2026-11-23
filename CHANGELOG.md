@@ -4,6 +4,17 @@ Chaque section est reprise telle quelle comme description de la release
 GitHub correspondante (voir `.github/workflows/build-apk.yml`). Toutes les
 versions restent téléchargeables sur la page Releases du dépôt.
 
+## 1.6.0 — 23/11/2026
+
+- **Accueil au premier lancement**, en 3 écrans courts (« Passer » toujours
+  possible) : ce que fait l'app, la devise choisie d'après le pays (à
+  vérifier ou changer), et le rappel du soir.
+- « J'ai déjà une sauvegarde » dès le premier écran : en changeant de
+  téléphone, on récupère tout en une minute.
+- Premiers pas sur l'accueil : « Touche le bouton ＋ » pour la première
+  dépense, puis « Bravo » avec comment modifier ou supprimer une opération.
+- Les utilisateurs actuels ne voient pas cet accueil après la mise à jour.
+
 ## 1.5.2 — 23/11/2026
 
 - Rappel du soir : il pouvait arriver en double (deux notifications le même
