@@ -7,9 +7,9 @@
  * « Passer » est toujours possible : rien ici n'est obligatoire.
  */
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { type ComponentProps, useEffect, useMemo, useState } from "react";
+import { type ComponentProps, useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, BackHandler, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { type Palette, useColors } from "@/constants/theme";
@@ -47,14 +47,18 @@ export default function WelcomeScreen() {
   const reminderTime = formatReminderTime(DEFAULT_REMINDER_TIME);
 
   // Retour Android : écran précédent (au premier, comportement normal).
-  useEffect(() => {
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (step === 0) return false;
-      setStep(step - 1);
-      return true;
-    });
-    return () => sub.remove();
-  }, [step]);
+  // Seulement quand l'accueil est affiché : ouvert par-dessus, l'écran
+  // Devise doit se fermer normalement avec le retour.
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        if (step === 0) return false;
+        setStep(step - 1);
+        return true;
+      });
+      return () => sub.remove();
+    }, [step]),
+  );
 
   const restore = () => {
     setBusy(true);
