@@ -4,7 +4,7 @@ Chaque section est reprise telle quelle comme description de la release
 GitHub correspondante (voir `.github/workflows/build-apk.yml`). Toutes les
 versions restent téléchargeables sur la page Releases du dépôt.
 
-## 1.6.0 — 23/11/2026
+## 1.6.0 — 24/11/2026
 
 - **Accueil au premier lancement**, en 3 écrans courts (« Passer » toujours
   possible) : ce que fait l'app, la devise choisie d'après le pays (à
